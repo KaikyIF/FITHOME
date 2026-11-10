@@ -1,28 +1,28 @@
 import 'package:flutter/material.dart';
 
 // Paleta do fluxo de cadastro.
-const onboardingAccent = Color(0xFF980DFA);
-const _ink = Color(0xFF1F2937);
-const _muted = Color(0xFF4B5563);
-const _line = Color(0xFFE3E5E8);
+const corDestaque = Color(0xFF980DFA);
+const _corTexto = Color(0xFF1F2937);
+const _corSecundaria = Color(0xFF4B5563);
+const _corBorda = Color(0xFFE3E5E8);
 
 /// Converte números positivos digitados com vírgula ou ponto.
-double? parsePositiveNumber(String text) {
-  final value = double.tryParse(text.trim().replaceAll(',', '.'));
-  return value != null && value.isFinite && value > 0 ? value : null;
+double? interpretarNumeroPositivo(String texto) {
+  final valor = double.tryParse(texto.trim().replaceAll(',', '.'));
+  return valor != null && valor.isFinite && valor > 0 ? valor : null;
 }
 
 /// Organiza as etapas e mantém o conteúdo rolável quando o teclado aparece.
-Widget onboardingLayout({
-  required String title,
-  required String subtitle,
-  required String label,
-  required VoidCallback onContinue,
+Widget estruturaAvaliacao({
+  required String titulo,
+  required String subtitulo,
+  required String rotulo,
+  required VoidCallback aoContinuar,
   required List<Widget> children,
-  VoidCallback? back,
-  int? step,
+  VoidCallback? voltar,
+  int? etapa,
   IconData? icon,
-  Color color = onboardingAccent,
+  Color color = corDestaque,
 }) {
   return DecoratedBox(
     decoration: const BoxDecoration(
@@ -34,14 +34,14 @@ Widget onboardingLayout({
     ),
     child: SafeArea(
       child: LayoutBuilder(
-        builder: (context, constraints) {
+        builder: (contexto, restricoes) {
           return SingleChildScrollView(
             // Arrastar o formulário recolhe o teclado e facilita o acesso ao botão inferior.
             keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
-            padding: EdgeInsets.fromLTRB(22, back == null ? 46 : 14, 22, 22),
+            padding: EdgeInsets.fromLTRB(22, voltar == null ? 46 : 14, 22, 22),
             child: ConstrainedBox(
               constraints: BoxConstraints(
-                minHeight: (constraints.maxHeight - (back == null ? 68 : 36))
+                minHeight: (restricoes.maxHeight - (voltar == null ? 68 : 36))
                     .clamp(0.0, double.infinity)
                     .toDouble(),
               ),
@@ -52,21 +52,21 @@ Widget onboardingLayout({
                   Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      if (back != null) backButton(back),
-                      if (step != null) ...[
+                      if (voltar != null) botaoVoltar(voltar),
+                      if (etapa != null) ...[
                         Row(
                           children: [
-                            for (var index = 1; index <= 3; index++)
+                            for (var indice = 1; indice <= 3; indice++)
                               Expanded(
                                 child: Container(
                                   height: 4,
                                   margin: EdgeInsets.only(
-                                    right: index < 3 ? 8 : 0,
+                                    right: indice < 3 ? 8 : 0,
                                   ),
                                   decoration: BoxDecoration(
-                                    color: index <= step
-                                        ? onboardingAccent
-                                        : _line,
+                                    color: indice <= etapa
+                                        ? corDestaque
+                                        : _corBorda,
                                     borderRadius: BorderRadius.circular(8),
                                   ),
                                 ),
@@ -76,21 +76,22 @@ Widget onboardingLayout({
                         const SizedBox(height: 28),
                       ],
                       if (icon != null) ...[
-                        onboardingBadge(icon, color, tinted: true),
+                        iconeAvaliacao(icon, color, suave: true),
                         const SizedBox(height: 18),
                       ],
                       Text(
-                        title,
+                        titulo,
                         style: const TextStyle(
                           fontSize: 28,
                           height: 1.16,
-                          color: _ink,
+                          color: _corTexto,
                         ),
                       ),
                       const SizedBox(height: 9),
                       Text(
-                        subtitle,
-                        style: const TextStyle(fontSize: 14, color: _muted),
+                        subtitulo,
+                        style: const TextStyle(
+                            fontSize: 14, color: _corSecundaria),
                       ),
                       const SizedBox(height: 30),
                       ...children,
@@ -98,7 +99,7 @@ Widget onboardingLayout({
                   ),
                   Padding(
                     padding: const EdgeInsets.only(top: 12),
-                    child: onboardingButton(label, onContinue),
+                    child: botaoAvaliacao(rotulo, aoContinuar),
                   ),
                 ],
               ),
@@ -111,21 +112,21 @@ Widget onboardingLayout({
 }
 
 /// Estiliza os campos dos formulários.
-Widget onboardingInput(
-  String label,
-  TextEditingController controller, {
-  required String hint,
+Widget campoAvaliacao(
+  String rotulo,
+  TextEditingController controlador, {
+  required String sugestao,
   IconData? icon,
-  bool light = false,
-  bool obscure = false,
-  VoidCallback? toggle,
-  TextInputType? keyboard,
-  TextCapitalization capitalization = TextCapitalization.none,
+  bool claro = false,
+  bool ocultar = false,
+  VoidCallback? alternar,
+  TextInputType? teclado,
+  TextCapitalization capitalizacao = TextCapitalization.none,
 }) {
-  final foreground = light ? Colors.white : _ink;
-  final border = OutlineInputBorder(
+  final corPrimeiroPlano = claro ? Colors.white : _corTexto;
+  final borda = OutlineInputBorder(
     borderRadius: BorderRadius.circular(16),
-    borderSide: BorderSide(color: light ? Colors.white30 : _line),
+    borderSide: BorderSide(color: claro ? Colors.white30 : _corBorda),
   );
   return Padding(
     padding: const EdgeInsets.only(bottom: 18),
@@ -133,26 +134,26 @@ Widget onboardingInput(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
-          label,
+          rotulo,
           style: TextStyle(
             fontSize: 14,
-            color: light ? Colors.white : _muted,
+            color: claro ? Colors.white : _corSecundaria,
           ),
         ),
         const SizedBox(height: 7),
         Semantics(
-          label: label,
+          label: rotulo,
           child: TextField(
-            controller: controller,
-            obscureText: obscure,
-            keyboardType: keyboard,
-            textCapitalization: capitalization,
-            style: TextStyle(color: foreground, fontSize: 14),
-            cursorColor: foreground,
+            controller: controlador,
+            obscureText: ocultar,
+            keyboardType: teclado,
+            textCapitalization: capitalizacao,
+            style: TextStyle(color: corPrimeiroPlano, fontSize: 14),
+            cursorColor: corPrimeiroPlano,
             decoration: InputDecoration(
-              hintText: hint,
+              hintText: sugestao,
               hintStyle: TextStyle(
-                color: light ? Colors.white70 : _muted,
+                color: claro ? Colors.white70 : _corSecundaria,
                 fontSize: 14,
               ),
               contentPadding: const EdgeInsets.symmetric(
@@ -160,30 +161,30 @@ Widget onboardingInput(
                 vertical: 16,
               ),
               filled: true,
-              fillColor: light
+              fillColor: claro
                   ? Colors.white.withAlpha(46)
                   : Colors.white.withAlpha(128),
               prefixIcon: icon == null
                   ? null
                   : Icon(icon, size: 19, color: Colors.white70),
-              suffixIcon: toggle == null
+              suffixIcon: alternar == null
                   ? null
                   : IconButton(
-                      onPressed: toggle,
-                      tooltip: obscure ? 'Mostrar senha' : 'Ocultar senha',
+                      onPressed: alternar,
+                      tooltip: ocultar ? 'Mostrar senha' : 'Ocultar senha',
                       icon: Icon(
-                        obscure
+                        ocultar
                             ? Icons.visibility_outlined
                             : Icons.visibility_off_outlined,
                         size: 19,
                         color: Colors.white70,
                       ),
                     ),
-              border: border,
-              enabledBorder: border,
-              focusedBorder: border.copyWith(
+              border: borda,
+              enabledBorder: borda,
+              focusedBorder: borda.copyWith(
                 borderSide: BorderSide(
-                  color: light ? Colors.white : onboardingAccent,
+                  color: claro ? Colors.white : corDestaque,
                   width: 2,
                 ),
               ),
@@ -196,88 +197,88 @@ Widget onboardingInput(
 }
 
 /// Cria a seta de retorno.
-Widget backButton(VoidCallback onTap, {bool white = false}) => IconButton(
+Widget botaoVoltar(VoidCallback aoTocar, {bool branco = false}) => IconButton(
       tooltip: 'Voltar',
-      alignment: white ? Alignment.center : Alignment.centerLeft,
-      onPressed: onTap,
-      color: white ? Colors.white : _muted,
+      alignment: branco ? Alignment.center : Alignment.centerLeft,
+      onPressed: aoTocar,
+      color: branco ? Colors.white : _corSecundaria,
       style:
-          white ? IconButton.styleFrom(backgroundColor: Colors.white24) : null,
+          branco ? IconButton.styleFrom(backgroundColor: Colors.white24) : null,
       icon: const Icon(Icons.arrow_back, size: 21),
     );
 
 /// Cria a ação principal da etapa.
-Widget onboardingButton(String label, VoidCallback onTap,
-        {bool white = false}) =>
+Widget botaoAvaliacao(String rotulo, VoidCallback aoTocar,
+        {bool branco = false}) =>
     FilledButton(
-      onPressed: onTap,
+      onPressed: aoTocar,
       style: FilledButton.styleFrom(
-        backgroundColor: white ? Colors.white : onboardingAccent,
-        foregroundColor: white ? const Color(0xFF7316B5) : Colors.white,
+        backgroundColor: branco ? Colors.white : corDestaque,
+        foregroundColor: branco ? const Color(0xFF7316B5) : Colors.white,
         minimumSize: const Size.fromHeight(52),
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(15),
         ),
       ),
-      child: Text(label),
+      child: Text(rotulo),
     );
 
 /// Exibe o ícone de uma etapa ou opção.
-Widget onboardingBadge(IconData icon, Color color, {bool tinted = false}) =>
+Widget iconeAvaliacao(IconData icon, Color color, {bool suave = false}) =>
     Container(
       width: 58,
       height: 58,
       decoration: BoxDecoration(
-        color: tinted ? color.withAlpha(27) : color,
+        color: suave ? color.withAlpha(27) : color,
         borderRadius: BorderRadius.circular(16),
       ),
-      child: Icon(icon, color: tinted ? color : Colors.white, size: 28),
+      child: Icon(icon, color: suave ? color : Colors.white, size: 28),
     );
 
 /// Apresenta os textos de um cartão.
-Widget onboardingCaption(String title, String subtitle,
-        {bool centered = false}) =>
+Widget legendaAvaliacao(String titulo, String subtitulo,
+        {bool centralizado = false}) =>
     Column(
       crossAxisAlignment:
-          centered ? CrossAxisAlignment.center : CrossAxisAlignment.start,
+          centralizado ? CrossAxisAlignment.center : CrossAxisAlignment.start,
       mainAxisSize: MainAxisSize.min,
       children: [
         Text(
-          title,
-          textAlign: centered ? TextAlign.center : TextAlign.start,
+          titulo,
+          textAlign: centralizado ? TextAlign.center : TextAlign.start,
           style: const TextStyle(
-            color: _ink,
+            color: _corTexto,
             fontSize: 14,
             fontWeight: FontWeight.w500,
           ),
         ),
         const SizedBox(height: 4),
         Text(
-          subtitle,
-          textAlign: centered ? TextAlign.center : TextAlign.start,
-          style: const TextStyle(color: _muted, fontSize: 12),
+          subtitulo,
+          textAlign: centralizado ? TextAlign.center : TextAlign.start,
+          style: const TextStyle(color: _corSecundaria, fontSize: 12),
         ),
       ],
     );
 
 /// Destaca visual e semanticamente a seleção.
-Widget onboardingChoice({
-  required bool selected,
-  required VoidCallback onTap,
+Widget opcaoAvaliacao({
+  required bool selecionado,
+  required VoidCallback aoTocar,
   required Widget child,
 }) {
-  final shape = RoundedRectangleBorder(
+  final forma = RoundedRectangleBorder(
     borderRadius: BorderRadius.circular(20),
-    side: BorderSide(color: selected ? onboardingAccent : _line),
+    side: BorderSide(color: selecionado ? corDestaque : _corBorda),
   );
   return Semantics(
-    selected: selected,
+    selected: selecionado,
     child: Material(
-      color: selected ? const Color(0xFFF8EEFF) : Colors.white,
-      shape: shape,
+      color: selecionado ? const Color(0xFFF8EEFF) : Colors.white,
+      shape: forma,
       clipBehavior: Clip.antiAlias,
       child: InkWell(
-        onTap: onTap,
+        onTap: aoTocar,
         child: Padding(padding: const EdgeInsets.all(15), child: child),
       ),
     ),

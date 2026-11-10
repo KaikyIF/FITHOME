@@ -19,7 +19,7 @@ O cadastro é enviado ao tocar em **Começar a Treinar**. O botão **Entrar** co
 
 ## Abrir no VS Code
 
-Abra a pasta `FitHome` que contém `pubspec.yaml`. As 15 telas ficam em `lib/screens/`, com uma classe por arquivo. Os componentes reaproveitados ficam em `lib/widgets/`. `lib/main.dart` controla a navegação e a sessão, e `lib/account_api.dart` faz as chamadas HTTP.
+Abra a pasta `FitHome` que contém `pubspec.yaml`. As 15 telas ficam em `lib/telas/`, com uma classe por arquivo. Os componentes reaproveitados ficam em `lib/componentes/`. `lib/main.dart` controla a navegação e a sessão, e `lib/api_conta.dart` faz as chamadas HTTP.
 
 ## Subir a API e um banco de teste
 
@@ -34,7 +34,7 @@ A API fica em `http://localhost:8088/api.php` por padrão. O banco fica na rede 
 
 ## Usar um banco FitHome existente
 
-Aplique **apenas** `sql/02_cadastro.sql` uma vez no MySQL 8.0+ após selecionar o banco FitHome existente. A migração acrescenta idade, IMC e condições de saúde à avaliação e inclui o valor de flexibilidade na lista de objetivos. Se o banco estiver vazio, importe primeiro `sql/01_fithome_mysql.sql`. O Compose usa seu próprio banco.
+Aplique **apenas** `sql/02_cadastro.sql` uma vez no MySQL 8.0+ no banco FitHome existente. A migração acrescenta idade, IMC e condições de saúde à avaliação e inclui o valor de flexibilidade na lista de objetivos. Se o banco estiver vazio, importe primeiro `sql/01_fithome_mysql.sql`. O Compose usa seu próprio banco.
 
 A API está em um único arquivo, `api/api.php`. Para hospedá-la com PHP 8.4 e `pdo_mysql`, defina no servidor `DB_HOST`, `DB_PORT`, `DB_NAME`, `DB_USER` e `DB_PASSWORD`. O usuário MySQL precisa de SELECT e INSERT em `usuarios`, `perfis_usuario` e `avaliacoes_iniciais`. As credenciais do banco ficam no servidor. Use HTTPS para o app em produção.
 

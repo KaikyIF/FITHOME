@@ -3,92 +3,94 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
-import 'account_api.dart';
+import 'api_conta.dart';
 
-import 'screens/exercise_detail_screen.dart';
-import 'screens/exercise_library_screen.dart';
-import 'screens/goal_screen.dart';
-import 'screens/health_screen.dart';
-import 'screens/home_screen.dart';
-import 'screens/level_screen.dart';
-import 'screens/login_screen.dart';
-import 'screens/measurements_screen.dart';
-import 'screens/personal_data_screen.dart';
-import 'screens/profile_screen.dart';
-import 'screens/progress_screen.dart';
-import 'screens/registration_screen.dart';
-import 'screens/workout_complete_screen.dart';
-import 'screens/workout_screen.dart';
-import 'screens/workout_timer_screen.dart';
-import 'widgets/onboarding_widgets.dart';
-import 'widgets/training_widgets.dart';
+import 'telas/tela_detalhe_exercicio.dart';
+import 'telas/tela_biblioteca_exercicios.dart';
+import 'telas/tela_objetivo.dart';
+import 'telas/tela_saude.dart';
+import 'telas/tela_inicio.dart';
+import 'telas/tela_nivel.dart';
+import 'telas/tela_login.dart';
+import 'telas/tela_medidas.dart';
+import 'telas/tela_dados_pessoais.dart';
+import 'telas/tela_perfil.dart';
+import 'telas/tela_progresso.dart';
+import 'telas/tela_cadastro.dart';
+import 'telas/tela_treino_concluido.dart';
+import 'telas/tela_treino.dart';
+import 'telas/tela_cronometro.dart';
+import 'componentes/componentes_avaliacao.dart';
+import 'componentes/componentes_treino.dart';
 
 // Inicializa o aplicativo no Flutter.
 void main() => runApp(const FitHome());
 
 /// Configura o tema e o cliente HTTP usado pelo app.
 class FitHome extends StatelessWidget {
-  const FitHome({super.key, this.accountRequest = requestAccount});
+  const FitHome({super.key, this.requisicaoConta = requisitarConta});
 
-  final AccountRequest accountRequest;
+  final RequisicaoConta requisicaoConta;
   @override
-  Widget build(BuildContext context) => MaterialApp(
+  Widget build(BuildContext contexto) => MaterialApp(
         debugShowCheckedModeBanner: false,
         title: 'FitHome',
         theme: ThemeData(
           useMaterial3: true,
-          colorScheme: ColorScheme.fromSeed(seedColor: purple),
+          colorScheme: ColorScheme.fromSeed(seedColor: roxo),
           scaffoldBackgroundColor: const Color(0xFFF9F7FB),
         ),
-        home: FitApp(accountRequest: accountRequest),
+        home: AplicativoFitHome(requisicaoConta: requisicaoConta),
       );
 }
 
 /// Hospeda a navegação e mantém o estado da sessão entre as telas.
-class FitApp extends StatefulWidget {
-  const FitApp({super.key, required this.accountRequest});
+class AplicativoFitHome extends StatefulWidget {
+  const AplicativoFitHome({super.key, required this.requisicaoConta});
 
-  final AccountRequest accountRequest;
+  final RequisicaoConta requisicaoConta;
   @override
-  State<FitApp> createState() => _FitAppState();
+  State<AplicativoFitHome> createState() => _EstadoAplicativoFitHome();
 }
 
-class _FitAppState extends State<FitApp> {
+class _EstadoAplicativoFitHome extends State<AplicativoFitHome> {
   // Os controladores sobrevivem à troca de telas durante o cadastro.
-  final name = TextEditingController(),
+  final nome = TextEditingController(),
       email = TextEditingController(),
       password = TextEditingController();
-  final age = TextEditingController(),
-      weight = TextEditingController(),
-      height = TextEditingController();
-  final confirmPassword = TextEditingController();
+  final idade = TextEditingController(),
+      peso = TextEditingController(),
+      altura = TextEditingController();
+  final confirmarSenha = TextEditingController();
   // Os dois campos notificam o cartão de IMC pelo mesmo Listenable.
-  late final measurements = Listenable.merge([weight, height]);
+  late final medidas = Listenable.merge([peso, altura]);
   // O conjunto mantém cada condição de saúde selecionada uma única vez.
-  final health = <String>{};
-  bool showPassword = false, acceptedTerms = false;
-  bool editingLevel = false, editingGoal = false;
-  String previousChoice = '';
+  final saude = <String>{};
+  bool mostrarSenha = false, aceitouTermos = false;
+  bool editandoNivel = false, editandoObjetivo = false;
+  String escolhaAnterior = '';
   // Controla o indicador de carregamento e impede o envio duplicado do formulário.
-  bool sendingAccount = false;
-  int? userId;
+  bool enviandoConta = false;
+  int? idUsuario;
 
   // Guarda a opção atual para restaurá-la se a edição for cancelada.
-  void editChoice({required bool isLevel}) {
+  void editarEscolha({required bool ehNivel}) {
     setState(() {
-      editingLevel = isLevel;
-      editingGoal = !isLevel;
-      previousChoice = isLevel ? level : goal;
-      page = isLevel ? 2 : 7;
+      editandoNivel = ehNivel;
+      editandoObjetivo = !ehNivel;
+      escolhaAnterior = ehNivel ? nivel : objetivo;
+      pagina = ehNivel ? 2 : 7;
     });
   }
 
   // A tela ativa e a aba selecionada são controladas separadamente.
-  int page = 0, tab = 0, seconds = 40, completed = 0;
-  String level = 'Iniciante', goal = 'Perder Peso', selected = 'Força em Casa';
-  bool playing = false, notifications = true;
-  Timer? timer;
-  final exercises = <String>[
+  int pagina = 0, aba = 0, segundos = 40, concluidos = 0;
+  String nivel = 'Iniciante',
+      objetivo = 'Perder Peso',
+      selecionado = 'Força em Casa';
+  bool emExecucao = false, notificacoes = true;
+  Timer? cronometro;
+  final exercicios = <String>[
     'Flexão de Braço',
     'Agachamento',
     'Prancha',
@@ -96,256 +98,256 @@ class _FitAppState extends State<FitApp> {
     'Polichinelo',
   ];
   // Guarda os exercícios marcados durante a sessão atual.
-  final done = <String>{};
+  final marcados = <String>{};
   // O contador de treinos fica no dispositivo e é separado por conta.
-  Future<void> _save() async {
+  Future<void> _salvarProgresso() async {
     // Captura a conta e o total antes da espera pelo armazenamento local.
-    final id = userId;
-    final count = completed;
+    final id = idUsuario;
+    final total = concluidos;
     if (id == null) return;
-    final preferences = await SharedPreferences.getInstance();
-    await preferences.setInt('completed_$id', count);
+    final preferencias = await SharedPreferences.getInstance();
+    await preferencias.setInt('completed_$id', total);
   }
 
   // Limpa os dados da sessão antes de voltar ao login.
-  void signOut() {
+  void sair() {
     setState(() {
-      userId = null;
-      page = 0;
-      tab = 0;
-      level = 'Iniciante';
-      goal = 'Perder Peso';
-      selected = 'Força em Casa';
-      completed = 0;
-      notifications = true;
-      done.clear();
-      health.clear();
-      for (final field in [
-        name,
+      idUsuario = null;
+      pagina = 0;
+      aba = 0;
+      nivel = 'Iniciante';
+      objetivo = 'Perder Peso';
+      selecionado = 'Força em Casa';
+      concluidos = 0;
+      notificacoes = true;
+      marcados.clear();
+      saude.clear();
+      for (final campo in [
+        nome,
         email,
-        age,
-        weight,
-        height,
+        idade,
+        peso,
+        altura,
         password,
-        confirmPassword,
+        confirmarSenha,
       ]) {
-        field.clear();
+        campo.clear();
       }
-      showPassword = false;
-      acceptedTerms = false;
+      mostrarSenha = false;
+      aceitouTermos = false;
     });
   }
 
   // Mantém um único cronômetro ativo por treino.
-  void startTimer() {
-    timer?.cancel();
-    setState(() => playing = true);
-    timer = Timer.periodic(const Duration(seconds: 1), (t) {
+  void iniciarCronometro() {
+    cronometro?.cancel();
+    setState(() => emExecucao = true);
+    cronometro = Timer.periodic(const Duration(seconds: 1), (cronometroAtivo) {
       if (!mounted) {
-        t.cancel();
+        cronometroAtivo.cancel();
         return;
       }
-      if (seconds > 0) {
-        setState(() => seconds--);
+      if (segundos > 0) {
+        setState(() => segundos--);
       } else {
-        _finishWorkout();
+        _concluirTreino();
       }
     });
   }
 
   // Pausa a contagem sem alterar os segundos restantes.
-  void pause() {
-    timer?.cancel();
-    setState(() => playing = false);
+  void pausar() {
+    cronometro?.cancel();
+    setState(() => emExecucao = false);
   }
 
   // Libera o cronômetro e os controladores quando o app sai da árvore.
   @override
   void dispose() {
-    timer?.cancel();
-    for (final c in [
-      name,
+    cronometro?.cancel();
+    for (final controlador in [
+      nome,
       email,
       password,
-      confirmPassword,
-      age,
-      weight,
-      height,
+      confirmarSenha,
+      idade,
+      peso,
+      altura,
     ]) {
-      c.dispose();
+      controlador.dispose();
     }
     super.dispose();
   }
 
   // Fecha o teclado antes de trocar de etapa.
-  void _go(int destination) {
+  void _irPara(int destino) {
     FocusManager.instance.primaryFocus?.unfocus();
-    setState(() => page = destination);
+    setState(() => pagina = destino);
   }
 
   // Mantém o aviso acima do botão para permitir nova tentativa.
-  void _showMessage(String message) {
+  void _mostrarMensagem(String mensagem) {
     ScaffoldMessenger.of(context)
       ..hideCurrentSnackBar()
       ..showSnackBar(SnackBar(
-        content: Text(message),
+        content: Text(mensagem),
         behavior: SnackBarBehavior.floating,
         margin: const EdgeInsets.fromLTRB(16, 0, 16, 88),
       ));
   }
 
   // Ao cancelar uma edição no perfil, recupera a opção anterior.
-  void _finishEdit({bool cancel = false}) {
+  void _finalizarEdicao({bool cancelar = false}) {
     setState(() {
-      if (cancel && editingLevel) level = previousChoice;
-      if (cancel && editingGoal) goal = previousChoice;
-      editingLevel = false;
-      editingGoal = false;
-      page = 6;
+      if (cancelar && editandoNivel) nivel = escolhaAnterior;
+      if (cancelar && editandoObjetivo) objetivo = escolhaAnterior;
+      editandoNivel = false;
+      editandoObjetivo = false;
+      pagina = 6;
     });
   }
 
   // Só abre o app depois que a API confirmar e devolver a conta.
-  Future<void> _submitAccount(String action, Map<String, Object?> data) async {
+  Future<void> _enviarConta(String acao, Map<String, Object?> dados) async {
     // Ignora novos toques enquanto a requisição anterior estiver pendente.
-    if (sendingAccount) return;
+    if (enviandoConta) return;
     ScaffoldMessenger.of(context).hideCurrentSnackBar();
     FocusManager.instance.primaryFocus?.unfocus();
-    setState(() => sendingAccount = true);
+    setState(() => enviandoConta = true);
     try {
-      final account = await widget.accountRequest(action, data);
-      final id = account['id'];
-      final accountName = account['nome'];
-      final accountEmail = account['email'];
-      final accountLevel = account['nivel'];
-      final accountGoal = account['objetivo'];
-      final conditions = account['condicoes_saude'];
-      final accountAge = account['idade'];
-      final accountHeight = account['altura'];
-      final accountWeight = account['peso'];
+      final conta = await widget.requisicaoConta(acao, dados);
+      final id = conta['id'];
+      final nomeConta = conta['nome'];
+      final emailConta = conta['email'];
+      final nivelConta = conta['nivel'];
+      final objetivoConta = conta['objetivo'];
+      final condicoes = conta['condicoes_saude'];
+      final idadeConta = conta['idade'];
+      final alturaConta = conta['altura'];
+      final pesoConta = conta['peso'];
       // Avaliações anteriores à migração podem ter idade ou medidas nulas.
       if (id is! int ||
-          accountName is! String ||
-          accountEmail is! String ||
-          accountLevel is! String ||
-          accountGoal is! String ||
-          conditions is! List ||
-          (accountAge != null && accountAge is! int) ||
-          (accountHeight != null && accountHeight is! num) ||
-          (accountWeight != null && accountWeight is! num)) {
-        throw const ApiException('A API retornou um cadastro incompleto.');
+          nomeConta is! String ||
+          emailConta is! String ||
+          nivelConta is! String ||
+          objetivoConta is! String ||
+          condicoes is! List ||
+          (idadeConta != null && idadeConta is! int) ||
+          (alturaConta != null && alturaConta is! num) ||
+          (pesoConta != null && pesoConta is! num)) {
+        throw const ErroApi('A API retornou um cadastro incompleto.');
       }
       // O servidor confirma o perfil, e o dispositivo recupera o contador dessa conta.
-      var localCompleted = 0;
+      var concluidosLocais = 0;
       try {
-        final preferences = await SharedPreferences.getInstance();
-        localCompleted = preferences.getInt('completed_$id') ?? 0;
+        final preferencias = await SharedPreferences.getInstance();
+        concluidosLocais = preferencias.getInt('completed_$id') ?? 0;
       } on Exception {
         // O histórico local é independente do acesso à conta.
       }
       // Uma resposta pode chegar depois que o widget já saiu da tela.
       if (!mounted) return;
       setState(() {
-        userId = id;
-        name.text = accountName;
-        email.text = accountEmail;
-        age.text = accountAge?.toString() ?? '';
-        height.text = accountHeight?.toString() ?? '';
-        weight.text = accountWeight?.toString() ?? '';
-        level = accountLevel;
-        goal = accountGoal;
-        health
+        idUsuario = id;
+        nome.text = nomeConta;
+        email.text = emailConta;
+        idade.text = idadeConta?.toString() ?? '';
+        altura.text = alturaConta?.toString() ?? '';
+        peso.text = pesoConta?.toString() ?? '';
+        nivel = nivelConta;
+        objetivo = objetivoConta;
+        saude
           ..clear()
-          ..addAll(conditions.whereType<String>());
+          ..addAll(condicoes.whereType<String>());
         // A sessão não precisa guardar a senha após a autenticação.
         password.clear();
-        confirmPassword.clear();
-        showPassword = false;
-        acceptedTerms = false;
-        completed = localCompleted;
-        page = 6;
-        tab = 0;
+        confirmarSenha.clear();
+        mostrarSenha = false;
+        aceitouTermos = false;
+        concluidos = concluidosLocais;
+        pagina = 6;
+        aba = 0;
       });
-    } on ApiException catch (error) {
-      if (mounted) _showMessage(error.message);
-    // Desbloqueia o formulário também quando a API retorna um erro.
+    } on ErroApi catch (erro) {
+      if (mounted) _mostrarMensagem(erro.mensagem);
+      // Desbloqueia o formulário também quando a API retorna um erro.
     } finally {
-      if (mounted) setState(() => sendingAccount = false);
+      if (mounted) setState(() => enviandoConta = false);
     }
   }
 
   // Reúne as respostas das etapas e envia o cadastro de uma só vez.
-  void _register() {
-    final years = int.tryParse(age.text.trim());
-    final kilograms = parsePositiveNumber(weight.text);
-    final centimeters = parsePositiveNumber(height.text);
+  void _cadastrar() {
+    final anos = int.tryParse(idade.text.trim());
+    final quilogramas = interpretarNumeroPositivo(peso.text);
+    final centimetros = interpretarNumeroPositivo(altura.text);
     // Volta à etapa correspondente quando faltam dados obrigatórios.
-    if (name.text.trim().isEmpty || years == null || years < 1 || years > 120) {
-      _showMessage('Informe seu nome e uma idade entre 1 e 120 anos.');
-      _go(3);
+    if (nome.text.trim().isEmpty || anos == null || anos < 1 || anos > 120) {
+      _mostrarMensagem('Informe seu nome e uma idade entre 1 e 120 anos.');
+      _irPara(3);
       return;
     }
-    if (kilograms == null ||
-        kilograms < 1 ||
-        kilograms > 999.99 ||
-        centimeters == null ||
-        centimeters < 30 ||
-        centimeters > 300) {
-      _showMessage('Confira o peso em kg e a altura em cm.');
-      _go(4);
+    if (quilogramas == null ||
+        quilogramas < 1 ||
+        quilogramas > 999.99 ||
+        centimetros == null ||
+        centimetros < 30 ||
+        centimetros > 300) {
+      _mostrarMensagem('Confira o peso em kg e a altura em cm.');
+      _irPara(4);
       return;
     }
-    if (health.isEmpty) {
-      _showMessage('Selecione as condições de saúde ou marque Nenhuma.');
-      _go(5);
+    if (saude.isEmpty) {
+      _mostrarMensagem('Selecione as condições de saúde ou marque Nenhuma.');
+      _irPara(5);
       return;
     }
     // O servidor recebe as medidas e calcula o IMC que será gravado.
-    _submitAccount('cadastro', {
-      'nome': name.text.trim(),
+    _enviarConta('cadastro', {
+      'nome': nome.text.trim(),
       'email': email.text.trim(),
       'senha': password.text,
-      'idade': years,
-      'altura': centimeters,
-      'peso': kilograms,
-      'nivel': level,
-      'objetivo': goal,
-      'condicoes_saude': health.toList(),
+      'idade': anos,
+      'altura': centimetros,
+      'peso': quilogramas,
+      'nivel': nivel,
+      'objetivo': objetivo,
+      'condicoes_saude': saude.toList(),
     });
   }
 
   // Valida os dados de acesso antes de navegar ou chamar a API.
-  void _submitCredentials({required bool registering}) {
-    if (registering && name.text.trim().isEmpty) {
-      _showMessage('Informe seu nome.');
+  void _enviarCredenciais({required bool cadastrando}) {
+    if (cadastrando && nome.text.trim().isEmpty) {
+      _mostrarMensagem('Informe seu nome.');
       return;
     }
     if (!RegExp(r'^[^\s@]+@[^\s@]+\.[^\s@]+$').hasMatch(email.text.trim())) {
-      _showMessage('Informe um e-mail válido.');
+      _mostrarMensagem('Informe um e-mail válido.');
       return;
     }
     // O mínimo depende do fluxo. O bcrypt usa um limite de 72 bytes.
-    final minimum = registering ? 6 : 1;
-    if (password.text.runes.length < minimum ||
+    final minimo = cadastrando ? 6 : 1;
+    if (password.text.runes.length < minimo ||
         utf8.encode(password.text).length > 72) {
-      _showMessage(
+      _mostrarMensagem(
         'Confira a senha. No cadastro, use pelo menos 6 caracteres e até 72 bytes.',
       );
       return;
     }
-    if (registering &&
-        (password.text != confirmPassword.text || !acceptedTerms)) {
-      _showMessage(
-        password.text != confirmPassword.text
+    if (cadastrando &&
+        (password.text != confirmarSenha.text || !aceitouTermos)) {
+      _mostrarMensagem(
+        password.text != confirmarSenha.text
             ? 'As senhas precisam ser iguais.'
             : 'Aceite os termos para criar a conta.',
       );
       return;
     }
-    if (registering) {
-      _go(2);
+    if (cadastrando) {
+      _irPara(2);
     } else {
-      _submitAccount('login', {
+      _enviarConta('login', {
         'email': email.text.trim(),
         'senha': password.text,
       });
@@ -353,175 +355,178 @@ class _FitAppState extends State<FitApp> {
   }
 
   // Mantém os dados do cadastro quando a pessoa avança ou volta entre etapas.
-  Widget _onboardingScreen() => switch (page) {
-        0 => LoginScreen(
+  Widget _telaAvaliacao() => switch (pagina) {
+        0 => TelaLogin(
             email: email,
             password: password,
-            showPassword: showPassword,
-            onTogglePassword: _togglePassword,
-            submit: () => _submitCredentials(registering: false),
-            onRegister: () => _go(1),
-            onForgotPassword: () => _showMessage(
+            mostrarSenha: mostrarSenha,
+            aoAlternarSenha: _alternarVisibilidadeSenha,
+            enviar: () => _enviarCredenciais(cadastrando: false),
+            aoCadastrar: () => _irPara(1),
+            aoEsquecerSenha: () => _mostrarMensagem(
               'A recuperação de senha ainda não está disponível no acesso local.',
             ),
           ),
-        1 => RegistrationScreen(
+        1 => TelaCadastro(
             email: email,
             password: password,
-            showPassword: showPassword,
-            onTogglePassword: _togglePassword,
-            submit: () => _submitCredentials(registering: true),
-            name: name,
-            confirmPassword: confirmPassword,
-            acceptedTerms: acceptedTerms,
-            onTermsChanged: (value) =>
-                setState(() => acceptedTerms = value ?? false),
-            onBack: () => _go(0),
+            mostrarSenha: mostrarSenha,
+            aoAlternarSenha: _alternarVisibilidadeSenha,
+            enviar: () => _enviarCredenciais(cadastrando: true),
+            nome: nome,
+            confirmarSenha: confirmarSenha,
+            aceitouTermos: aceitouTermos,
+            aoAlterarAceite: (valor) =>
+                setState(() => aceitouTermos = valor ?? false),
+            aoVoltar: () => _irPara(0),
           ),
-        2 => LevelScreen(
-            level: level,
-            onSelected: (value) => setState(() => level = value),
-            onBack:
-                editingLevel ? () => _finishEdit(cancel: true) : () => _go(1),
-            onContinue: editingLevel ? _finishEdit : () => _go(3),
+        2 => TelaNivel(
+            nivel: nivel,
+            aoSelecionar: (valor) => setState(() => nivel = valor),
+            aoVoltar: editandoNivel
+                ? () => _finalizarEdicao(cancelar: true)
+                : () => _irPara(1),
+            aoContinuar: editandoNivel ? _finalizarEdicao : () => _irPara(3),
           ),
-        3 => PersonalDataScreen(
-            name: name,
-            age: age,
-            onBack: () => _go(2),
-            onContinue: () => _go(4),
+        3 => TelaDadosPessoais(
+            nome: nome,
+            idade: idade,
+            aoVoltar: () => _irPara(2),
+            aoContinuar: () => _irPara(4),
           ),
-        4 => MeasurementsScreen(
-            weight: weight,
-            height: height,
-            measurements: measurements,
-            onBack: () => _go(3),
-            onContinue: () => _go(5),
+        4 => TelaMedidas(
+            peso: peso,
+            altura: altura,
+            medidas: medidas,
+            aoVoltar: () => _irPara(3),
+            aoContinuar: () => _irPara(5),
           ),
-        5 => HealthScreen(
-            health: health,
-            onToggle: _toggleHealth,
-            onBack: () => _go(4),
-            onContinue: () => _go(7),
+        5 => TelaSaude(
+            saude: saude,
+            aoAlternar: _alternarCondicao,
+            aoVoltar: () => _irPara(4),
+            aoContinuar: () => _irPara(7),
           ),
-        _ => GoalScreen(
-            goal: goal,
-            editingGoal: editingGoal,
-            onSelected: (value) => setState(() => goal = value),
-            onBack:
-                editingGoal ? () => _finishEdit(cancel: true) : () => _go(5),
-            onContinue: editingGoal ? _finishEdit : _register,
+        _ => TelaObjetivo(
+            objetivo: objetivo,
+            editandoObjetivo: editandoObjetivo,
+            aoSelecionar: (valor) => setState(() => objetivo = valor),
+            aoVoltar: editandoObjetivo
+                ? () => _finalizarEdicao(cancelar: true)
+                : () => _irPara(5),
+            aoContinuar: editandoObjetivo ? _finalizarEdicao : _cadastrar,
           ),
       };
 
   // A opção Nenhuma é exclusiva e pode ser desmarcada como as demais.
-  void _toggleHealth(String condition) => setState(() {
-        if (health.remove(condition)) return;
-        if (condition == 'Nenhuma') {
-          health.clear();
+  void _alternarCondicao(String condicao) => setState(() {
+        if (saude.remove(condicao)) return;
+        if (condicao == 'Nenhuma') {
+          saude.clear();
         } else {
-          health.remove('Nenhuma');
+          saude.remove('Nenhuma');
         }
-        health.add(condition);
+        saude.add(condicao);
       });
 
-  void _togglePassword() => setState(() => showPassword = !showPassword);
+  void _alternarVisibilidadeSenha() =>
+      setState(() => mostrarSenha = !mostrarSenha);
 
   // Escolhe a aba exibida pela barra de navegação.
-  Widget _tabScreen() => switch (tab) {
-        0 => HomeScreen(
-            name: name.text,
-            level: level,
-            completed: completed,
-            activityCount: done.length,
-            onWorkout: (value) => setState(() {
-              selected = value;
-              page = 8;
+  Widget _telaAba() => switch (aba) {
+        0 => TelaInicio(
+            nome: nome.text,
+            nivel: nivel,
+            concluidos: concluidos,
+            totalAtividades: marcados.length,
+            aoAbrirTreino: (valor) => setState(() {
+              selecionado = valor;
+              pagina = 8;
             }),
           ),
-        1 => ExerciseLibraryScreen(
-            exercises: exercises,
-            onExercise: (value) => setState(() {
-              selected = value;
-              page = 9;
+        1 => TelaBibliotecaExercicios(
+            exercicios: exercicios,
+            aoAbrirExercicio: (valor) => setState(() {
+              selecionado = valor;
+              pagina = 9;
             }),
           ),
-        2 => ProgressScreen(completed: completed),
-        _ => ProfileScreen(
-            name: name.text,
-            level: level,
-            goal: goal,
-            completed: completed,
-            notifications: notifications,
-            onEditGoal: () => editChoice(isLevel: false),
-            onEditLevel: () => editChoice(isLevel: true),
-            onNotifications: (value) => setState(() => notifications = value),
-            onSignOut: signOut,
+        2 => TelaProgresso(concluidos: concluidos),
+        _ => TelaPerfil(
+            nome: nome.text,
+            nivel: nivel,
+            objetivo: objetivo,
+            concluidos: concluidos,
+            notificacoes: notificacoes,
+            aoEditarObjetivo: () => editarEscolha(ehNivel: false),
+            aoEditarNivel: () => editarEscolha(ehNivel: true),
+            aoAlterarNotificacoes: (valor) =>
+                setState(() => notificacoes = valor),
+            aoSair: sair,
           ),
       };
 
   // As telas abertas a partir de uma aba compartilham a barra superior.
-  Widget _trainingScreen() => switch (page) {
-        8 => WorkoutScreen(
-            selected: selected,
-            level: level,
-            exercises: exercises,
-            done: done,
-            onToggle: (exercise, checked) => setState(
-                () => checked ? done.add(exercise) : done.remove(exercise)),
-            onStart: () => setState(() {
-              seconds = 40;
-              page = 11;
+  Widget _telaTreino() => switch (pagina) {
+        8 => TelaTreino(
+            selecionado: selecionado,
+            nivel: nivel,
+            exercicios: exercicios,
+            marcados: marcados,
+            aoAlternar: (exercicio, marcado) => setState(() =>
+                marcado ? marcados.add(exercicio) : marcados.remove(exercicio)),
+            aoIniciar: () => setState(() {
+              segundos = 40;
+              pagina = 11;
             }),
           ),
-        9 => ExerciseDetailScreen(
-            selected: selected,
-            onAdd: () => setState(() {
-              done.add(selected);
-              page = 8;
+        9 => TelaDetalheExercicio(
+            selecionado: selecionado,
+            aoAdicionar: () => setState(() {
+              marcados.add(selecionado);
+              pagina = 8;
             }),
           ),
-        10 => WorkoutCompleteScreen(
-            onHome: () => setState(() {
-              page = 6;
-              tab = 0;
+        10 => TelaTreinoConcluido(
+            aoVoltarInicio: () => setState(() {
+              pagina = 6;
+              aba = 0;
             }),
           ),
-        11 => WorkoutTimerScreen(
-            selected: selected,
-            seconds: seconds,
-            playing: playing,
-            onToggle: playing ? pause : startTimer,
-            onReset: () => setState(() => seconds = 40),
-            onFinish: _finishWorkout,
+        11 => TelaCronometro(
+            selecionado: selecionado,
+            segundos: segundos,
+            emExecucao: emExecucao,
+            aoAlternar: emExecucao ? pausar : iniciarCronometro,
+            aoReiniciar: () => setState(() => segundos = 40),
+            aoConcluir: _concluirTreino,
           ),
-        _ => _tabScreen(),
+        _ => _telaAba(),
       };
 
   // Compartilha a conclusão entre o fim do cronômetro e o botão manual.
-  void _finishWorkout() {
-    timer?.cancel();
+  void _concluirTreino() {
+    cronometro?.cancel();
     setState(() {
-      playing = false;
-      completed++;
-      page = 10;
+      emExecucao = false;
+      concluidos++;
+      pagina = 10;
     });
-    _save();
+    _salvarProgresso();
   }
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext contexto) {
     // A tela de objetivo pertence à avaliação mesmo com o identificador 7. O 6 abre as abas.
-    final onboarding = page <= 5 || page == 7;
-    if (onboarding) {
+    final emAvaliacao = pagina <= 5 || pagina == 7;
+    if (emAvaliacao) {
       // Bloqueia o formulário enquanto o servidor processa a solicitação.
       return Scaffold(
         body: Stack(
           fit: StackFit.expand,
           children: [
-            AbsorbPointer(
-                absorbing: sendingAccount, child: _onboardingScreen()),
-            if (sendingAccount)
+            AbsorbPointer(absorbing: enviandoConta, child: _telaAvaliacao()),
+            if (enviandoConta)
               const SafeArea(
                 child: Align(
                   alignment: Alignment.topCenter,
@@ -532,31 +537,31 @@ class _FitAppState extends State<FitApp> {
         ),
       );
     }
-    final body = _trainingScreen();
+    final corpo = _telaTreino();
     return Scaffold(
       appBar: AppBar(
         title: const Text(
           'FitHome',
           style: TextStyle(fontWeight: FontWeight.bold),
         ),
-        foregroundColor: purple,
-        leading: page == 8 || page == 9 || page == 11
+        foregroundColor: roxo,
+        leading: pagina == 8 || pagina == 9 || pagina == 11
             ? IconButton(
                 icon: const Icon(Icons.arrow_back),
                 onPressed: () {
-                  pause();
-                  setState(() => page = page == 9 ? 6 : 8);
+                  pausar();
+                  setState(() => pagina = pagina == 9 ? 6 : 8);
                 },
               )
             : null,
       ),
       body: SafeArea(
-        child: Padding(padding: const EdgeInsets.all(20), child: body),
+        child: Padding(padding: const EdgeInsets.all(20), child: corpo),
       ),
-      bottomNavigationBar: (page == 6)
+      bottomNavigationBar: (pagina == 6)
           ? NavigationBar(
-              selectedIndex: tab,
-              onDestinationSelected: (v) => setState(() => tab = v),
+              selectedIndex: aba,
+              onDestinationSelected: (v) => setState(() => aba = v),
               destinations: const [
                 NavigationDestination(
                   icon: Icon(Icons.home_outlined),

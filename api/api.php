@@ -5,65 +5,65 @@ header('Content-Type: application/json; charset=utf-8');
 header('Cache-Control: no-store');
 
 // Traduz as opções exibidas no Flutter para os valores armazenados no banco.
-const GOALS = [
+const OBJETIVOS = [
     'Perder Peso' => 'emagrecimento',
     'Ganhar Massa' => 'hipertrofia',
     'Melhorar Saúde' => 'saude',
     'Ganhar Flexibilidade' => 'flexibilidade',
 ];
 // Mantém os níveis da interface alinhados ao ENUM do MySQL.
-const LEVELS = [
+const NIVEIS = [
     'Iniciante' => 'iniciante',
     'Intermediário' => 'intermediario',
     'Avançado' => 'avancado',
 ];
 // Lista as condições que podem ser enviadas no cadastro.
-const CONDITIONS = [
+const CONDICOES = [
     'Nenhuma', 'Problemas cardíacos', 'Diabetes', 'Pressão alta',
     'Problemas articulares', 'Problemas respiratórios', 'Gravidez', 'Lesão recente',
 ];
 
 // Envia a resposta em JSON e encerra o processamento da requisição.
-function reply(int $status, array $body): never
+function responder(int $estado, array $corpo): never
 {
-    http_response_code($status);
-    echo json_encode($body, JSON_UNESCAPED_UNICODE | JSON_THROW_ON_ERROR);
+    http_response_code($estado);
+    echo json_encode($corpo, JSON_UNESCAPED_UNICODE | JSON_THROW_ON_ERROR);
     exit;
 }
 
 // Responde a um formulário válido em JSON, mas com campos inválidos.
-function invalid(string $message): never
+function responderCampoInvalido(string $mensagem): never
 {
-    reply(422, ['erro' => $message]);
+    responder(422, ['erro' => $mensagem]);
 }
 
 // Valida medidas numéricas e arredonda para a precisão das colunas.
-function decimal(array $input, string $key, float $min, float $max, string $message): float
+function validarMedida(array $entrada, string $chave, float $minimo, float $maximo, string $mensagem): float
 {
-    $value = $input[$key] ?? null;
-    if (!is_int($value) && !is_float($value)) {
-        invalid($message);
+    $valor = $entrada[$chave] ?? null;
+    if (!is_int($valor) && !is_float($valor)) {
+        responderCampoInvalido($mensagem);
     }
-    if (!is_finite((float) $value) || $value < $min || $value > $max) {
-        invalid($message);
+    if (!is_finite((float) $valor) || $valor < $minimo || $valor > $maximo) {
+        responderCampoInvalido($mensagem);
     }
-    return round($value, 2);
+    return round($valor, 2);
 }
 
 // Abre a conexão usando as credenciais configuradas no servidor.
-function database(): PDO
+function conectarBanco(): PDO
 {
-    $host = getenv('DB_HOST') ?: '127.0.0.1';
-    $port = getenv('DB_PORT') ?: '3306';
-    $name = getenv('DB_NAME') ?: 'fithome';
-    $user = getenv('DB_USER');
-    $pass = getenv('DB_PASSWORD');
-    if ($user === false || $pass === false) {
+    $servidor = getenv('DB_HOST') ?: '127.0.0.1';
+    $porta = getenv('DB_PORT') ?: '3306';
+    $nome = getenv('DB_NAME') ?: 'fithome';
+    $usuario = getenv('DB_USER');
+    $senhaBanco = getenv('DB_PASSWORD');
+    if ($usuario === false || $senhaBanco === false) {
         throw new RuntimeException('Configure DB_USER e DB_PASSWORD no servidor.');
     }
 
     // Configura UTF-8 e prepara as consultas diretamente no MySQL.
-    return new PDO("mysql:host=$host;port=$port;dbname=$name;charset=utf8mb4", $user, $pass, [
+    return new PDO("mysql:host=$servidor;port=$porta;dbname=$nome;charset=utf8mb4", $usuario, $senhaBanco, [
         PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
         PDO::ATTR_EMULATE_PREPARES => false,
         PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
@@ -71,9 +71,9 @@ function database(): PDO
 }
 
 // Carrega o perfil e a avaliação mais recente para devolver ao Flutter.
-function account(PDO $db, int $id): array
+function buscarConta(PDO $banco, int $id): array
 {
-    $query = $db->prepare('
+    $consulta = $banco->prepare('
         SELECT u.id, u.email, p.nome_completo, p.altura_cm, p.peso_atual_kg,
                a.idade_anos, a.imc, a.objetivo, a.nivel_experiencia, a.condicoes_saude
         FROM usuarios u
@@ -84,144 +84,144 @@ function account(PDO $db, int $id): array
         )
         WHERE u.id = ?
     ');
-    $query->execute([$id]);
-    $row = $query->fetch();
+    $consulta->execute([$id]);
+    $linha = $consulta->fetch();
     // Traduz também os objetivos que podem existir em avaliações antigas.
-    $goals = GOALS + ['Ganhar Resistência' => 'condicionamento', 'Outro' => 'outro'];
+    $objetivos = OBJETIVOS + ['Ganhar Resistência' => 'condicionamento', 'Outro' => 'outro'];
 
     return [
-        'id' => (int) $row['id'],
-        'nome' => $row['nome_completo'] ?? '',
-        'email' => $row['email'],
-        'idade' => $row['idade_anos'] === null ? null : (int) $row['idade_anos'],
-        'altura' => $row['altura_cm'] === null ? null : (float) $row['altura_cm'],
-        'peso' => $row['peso_atual_kg'] === null ? null : (float) $row['peso_atual_kg'],
-        'imc' => $row['imc'] === null ? null : (float) $row['imc'],
-        'objetivo' => array_search($row['objetivo'], $goals, true) ?: 'Perder Peso',
-        'nivel' => array_search($row['nivel_experiencia'], LEVELS, true) ?: 'Iniciante',
-        'condicoes_saude' => $row['condicoes_saude'] === null
-            ? [] : json_decode($row['condicoes_saude'], true, 512, JSON_THROW_ON_ERROR),
+        'id' => (int) $linha['id'],
+        'nome' => $linha['nome_completo'] ?? '',
+        'email' => $linha['email'],
+        'idade' => $linha['idade_anos'] === null ? null : (int) $linha['idade_anos'],
+        'altura' => $linha['altura_cm'] === null ? null : (float) $linha['altura_cm'],
+        'peso' => $linha['peso_atual_kg'] === null ? null : (float) $linha['peso_atual_kg'],
+        'imc' => $linha['imc'] === null ? null : (float) $linha['imc'],
+        'objetivo' => array_search($linha['objetivo'], $objetivos, true) ?: 'Perder Peso',
+        'nivel' => array_search($linha['nivel_experiencia'], NIVEIS, true) ?: 'Iniciante',
+        'condicoes_saude' => $linha['condicoes_saude'] === null
+            ? [] : json_decode($linha['condicoes_saude'], true, 512, JSON_THROW_ON_ERROR),
     ];
 }
 
 // Valida o cadastro e grava usuário, perfil e avaliação juntos.
-function register(PDO $db, array $input, string $email, string $password): never
+function cadastrar(PDO $banco, array $entrada, string $email, string $senha): never
 {
-    $name = is_string($input['nome'] ?? null) ? trim($input['nome']) : '';
-    if (!preg_match('/\A.{1,120}\z/u', $name)) {
-        invalid('Informe um nome com até 120 caracteres.');
+    $nome = is_string($entrada['nome'] ?? null) ? trim($entrada['nome']) : '';
+    if (!preg_match('/\A.{1,120}\z/u', $nome)) {
+        responderCampoInvalido('Informe um nome com até 120 caracteres.');
     }
-    if (preg_match_all('/./us', $password) < 6) {
-        invalid('A senha precisa ter pelo menos 6 caracteres.');
+    if (preg_match_all('/./us', $senha) < 6) {
+        responderCampoInvalido('A senha precisa ter pelo menos 6 caracteres.');
     }
-    $age = $input['idade'] ?? null;
-    if (!is_int($age) || $age < 1 || $age > 120) {
-        invalid('Informe uma idade entre 1 e 120 anos.');
+    $idade = $entrada['idade'] ?? null;
+    if (!is_int($idade) || $idade < 1 || $idade > 120) {
+        responderCampoInvalido('Informe uma idade entre 1 e 120 anos.');
     }
-    $height = decimal($input, 'altura', 30, 300, 'Informe uma altura entre 30 e 300 cm.');
-    $weight = decimal($input, 'peso', 1, 999.99, 'Informe um peso entre 1 e 999,99 kg.');
-    $goal = $input['objetivo'] ?? null;
-    $level = $input['nivel'] ?? null;
-    if (!is_string($goal) || !isset(GOALS[$goal]) || !is_string($level) || !isset(LEVELS[$level])) {
-        invalid('Selecione um objetivo e um nível válidos.');
+    $altura = validarMedida($entrada, 'altura', 30, 300, 'Informe uma altura entre 30 e 300 cm.');
+    $peso = validarMedida($entrada, 'peso', 1, 999.99, 'Informe um peso entre 1 e 999,99 kg.');
+    $objetivo = $entrada['objetivo'] ?? null;
+    $nivel = $entrada['nivel'] ?? null;
+    if (!is_string($objetivo) || !isset(OBJETIVOS[$objetivo]) || !is_string($nivel) || !isset(NIVEIS[$nivel])) {
+        responderCampoInvalido('Selecione um objetivo e um nível válidos.');
     }
     // Exige pelo menos uma escolha. Nenhuma só pode ser enviada sozinha.
-    $conditions = $input['condicoes_saude'] ?? null;
-    if (!is_array($conditions) || !array_is_list($conditions) || count($conditions) < 1
-        || count($conditions) > count(CONDITIONS)
-        || (count($conditions) > 1 && in_array('Nenhuma', $conditions, true))) {
-        invalid('Selecione condições de saúde válidas ou marque Nenhuma.');
+    $condicoes = $entrada['condicoes_saude'] ?? null;
+    if (!is_array($condicoes) || !array_is_list($condicoes) || count($condicoes) < 1
+        || count($condicoes) > count(CONDICOES)
+        || (count($condicoes) > 1 && in_array('Nenhuma', $condicoes, true))) {
+        responderCampoInvalido('Selecione condições de saúde válidas ou marque Nenhuma.');
     }
-    foreach ($conditions as $condition) {
-        if (!in_array($condition, CONDITIONS, true)) {
-            invalid('Selecione uma condição de saúde válida.');
+    foreach ($condicoes as $condicao) {
+        if (!in_array($condicao, CONDICOES, true)) {
+            responderCampoInvalido('Selecione uma condição de saúde válida.');
         }
     }
     // Remove escolhas duplicadas e mantém a lista em formato JSON.
-    $conditionsJson = json_encode(array_values(array_unique($conditions)), JSON_UNESCAPED_UNICODE | JSON_THROW_ON_ERROR);
+    $condicoesJson = json_encode(array_values(array_unique($condicoes)), JSON_UNESCAPED_UNICODE | JSON_THROW_ON_ERROR);
     // Recalcula o IMC a partir das mesmas medidas gravadas no MySQL.
-    $bmi = round($weight / (($height / 100) ** 2), 2);
+    $imc = round($peso / (($altura / 100) ** 2), 2);
     // Transforma a senha em hash bcrypt antes de montar o INSERT.
-    $hash = password_hash($password, PASSWORD_BCRYPT);
+    $hash = password_hash($senha, PASSWORD_BCRYPT);
 
     // Qualquer falha desfaz as três gravações do cadastro.
-    $db->beginTransaction();
+    $banco->beginTransaction();
     try {
-        $db->prepare('INSERT INTO usuarios (email, senha_hash, algoritmo_senha) VALUES (?, ?, ?)')
+        $banco->prepare('INSERT INTO usuarios (email, senha_hash, algoritmo_senha) VALUES (?, ?, ?)')
             ->execute([$email, $hash, 'bcrypt']);
         // O ID gerado para a conta vincula o perfil e a avaliação ao mesmo usuário.
-        $id = (int) $db->lastInsertId();
-        $db->prepare('INSERT INTO perfis_usuario (usuario_id, nome_completo, altura_cm, peso_atual_kg) VALUES (?, ?, ?, ?)')
-            ->execute([$id, $name, $height, $weight]);
-        $db->prepare('
+        $id = (int) $banco->lastInsertId();
+        $banco->prepare('INSERT INTO perfis_usuario (usuario_id, nome_completo, altura_cm, peso_atual_kg) VALUES (?, ?, ?, ?)')
+            ->execute([$id, $nome, $altura, $peso]);
+        $banco->prepare('
             INSERT INTO avaliacoes_iniciais
                 (usuario_id, idade_anos, imc, objetivo, nivel_experiencia, condicoes_saude, peso_inicial_kg)
             VALUES (?, ?, ?, ?, ?, ?, ?)
-        ')->execute([$id, $age, $bmi, GOALS[$goal], LEVELS[$level], $conditionsJson, $weight]);
-        $result = account($db, $id);
+        ')->execute([$id, $idade, $imc, OBJETIVOS[$objetivo], NIVEIS[$nivel], $condicoesJson, $peso]);
+        $resultado = buscarConta($banco, $id);
         // Confirma a conta só depois que o perfil e a avaliação estiverem disponíveis.
-        $db->commit();
-    } catch (Throwable $error) {
-        if ($db->inTransaction()) {
-            $db->rollBack();
+        $banco->commit();
+    } catch (Throwable $erro) {
+        if ($banco->inTransaction()) {
+            $banco->rollBack();
         }
-        if ($error instanceof PDOException && ($error->errorInfo[1] ?? null) === 1062) {
-            reply(409, ['erro' => 'Este e-mail já está cadastrado. Volte ao login para entrar.']);
+        if ($erro instanceof PDOException && ($erro->errorInfo[1] ?? null) === 1062) {
+            responder(409, ['erro' => 'Este e-mail já está cadastrado. Volte ao login para entrar.']);
         }
-        throw $error;
+        throw $erro;
     }
 
-    reply(201, ['usuario' => $result]);
+    responder(201, ['usuario' => $resultado]);
 }
 
 // Restringe a API às ações POST de cadastro e login.
 if (($_SERVER['REQUEST_METHOD'] ?? '') !== 'POST') {
     header('Allow: POST');
-    reply(405, ['erro' => 'Use POST.']);
+    responder(405, ['erro' => 'Use POST.']);
 }
-$action = $_GET['acao'] ?? '';
-if (!in_array($action, ['cadastro', 'login'], true)) {
-    reply(404, ['erro' => 'Ação não encontrada.']);
+$acao = $_GET['acao'] ?? '';
+if (!in_array($acao, ['cadastro', 'login'], true)) {
+    responder(404, ['erro' => 'Ação não encontrada.']);
 }
 
 try {
     // Lê até um byte além do limite para detectar corpos maiores que 16 KiB.
-    $body = file_get_contents('php://input', false, null, 0, 16385);
-    if ($body === false || strlen($body) > 16384) {
-        reply(413, ['erro' => 'Requisição muito grande.']);
+    $corpo = file_get_contents('php://input', false, null, 0, 16385);
+    if ($corpo === false || strlen($corpo) > 16384) {
+        responder(413, ['erro' => 'Requisição muito grande.']);
     }
     try {
-        $input = json_decode($body, true, 16, JSON_THROW_ON_ERROR);
+        $entrada = json_decode($corpo, true, 16, JSON_THROW_ON_ERROR);
     } catch (JsonException) {
-        reply(400, ['erro' => 'Envie um JSON válido.']);
+        responder(400, ['erro' => 'Envie um JSON válido.']);
     }
-    if (!is_array($input) || array_is_list($input)) {
-        reply(400, ['erro' => 'Envie um objeto JSON.']);
+    if (!is_array($entrada) || array_is_list($entrada)) {
+        responder(400, ['erro' => 'Envie um objeto JSON.']);
     }
     // Normaliza o e-mail da mesma forma no cadastro e no login.
-    $email = is_string($input['email'] ?? null) ? strtolower(trim($input['email'])) : '';
-    $password = $input['senha'] ?? null;
+    $email = is_string($entrada['email'] ?? null) ? strtolower(trim($entrada['email'])) : '';
+    $senha = $entrada['senha'] ?? null;
     if (strlen($email) > 190 || !filter_var($email, FILTER_VALIDATE_EMAIL)) {
-        invalid('Informe um e-mail válido.');
+        responderCampoInvalido('Informe um e-mail válido.');
     }
-    if (!is_string($password) || $password === '' || strlen($password) > 72 || str_contains($password, "\0")) {
-        invalid('Informe uma senha válida de até 72 bytes.');
+    if (!is_string($senha) || $senha === '' || strlen($senha) > 72 || str_contains($senha, "\0")) {
+        responderCampoInvalido('Informe uma senha válida de até 72 bytes.');
     }
 
-    $db = database();
-    if ($action === 'cadastro') {
-        register($db, $input, $email, $password);
+    $banco = conectarBanco();
+    if ($acao === 'cadastro') {
+        cadastrar($banco, $entrada, $email, $senha);
     }
 
     // Confere a senha sem devolver o hash ao aplicativo.
-    $query = $db->prepare('SELECT id, senha_hash, ativo FROM usuarios WHERE email = ?');
-    $query->execute([$email]);
-    $user = $query->fetch();
-    if (!$user || (int) $user['ativo'] !== 1 || !password_verify($password, $user['senha_hash'])) {
-        reply(401, ['erro' => 'E-mail ou senha inválidos.']);
+    $consulta = $banco->prepare('SELECT id, senha_hash, ativo FROM usuarios WHERE email = ?');
+    $consulta->execute([$email]);
+    $usuario = $consulta->fetch();
+    if (!$usuario || (int) $usuario['ativo'] !== 1 || !password_verify($senha, $usuario['senha_hash'])) {
+        responder(401, ['erro' => 'E-mail ou senha inválidos.']);
     }
-    reply(200, ['usuario' => account($db, (int) $user['id'])]);
-} catch (Throwable $error) {
-    error_log('FitHome API: ' . get_class($error) . ' (' . $error->getCode() . ')');
-    reply(500, ['erro' => 'Não foi possível acessar o FitHome. Tente novamente.']);
+    responder(200, ['usuario' => buscarConta($banco, (int) $usuario['id'])]);
+} catch (Throwable $erro) {
+    error_log('FitHome API: ' . get_class($erro) . ' (' . $erro->getCode() . ')');
+    responder(500, ['erro' => 'Não foi possível acessar o FitHome. Tente novamente.']);
 }

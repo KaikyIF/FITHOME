@@ -1,25 +1,25 @@
 import 'package:flutter/material.dart';
-import '../widgets/onboarding_widgets.dart';
+import '../componentes/componentes_avaliacao.dart';
 
 /// Permite escolher o objetivo no cadastro ou no perfil.
-class GoalScreen extends StatelessWidget {
-  const GoalScreen(
+class TelaObjetivo extends StatelessWidget {
+  const TelaObjetivo(
       {super.key,
-      required this.goal,
-      required this.editingGoal,
-      required this.onSelected,
-      required this.onBack,
-      required this.onContinue});
+      required this.objetivo,
+      required this.editandoObjetivo,
+      required this.aoSelecionar,
+      required this.aoVoltar,
+      required this.aoContinuar});
 
-  final String goal;
-  final bool editingGoal;
-  final ValueChanged<String> onSelected;
-  final VoidCallback onBack;
-  final VoidCallback onContinue;
+  final String objetivo;
+  final bool editandoObjetivo;
+  final ValueChanged<String> aoSelecionar;
+  final VoidCallback aoVoltar;
+  final VoidCallback aoContinuar;
 
   @override
-  Widget build(BuildContext context) {
-    const goals = [
+  Widget build(BuildContext contexto) {
+    const objetivos = [
       (
         'Perder Peso',
         'Queimar calorias e reduzir gordura',
@@ -45,32 +45,32 @@ class GoalScreen extends StatelessWidget {
         Color(0xFFA976F5),
       ),
     ];
-    Widget goalCard((String, String, IconData, Color) item) {
-      final (title, description, icon, color) = item;
+    Widget cartaoObjetivo((String, String, IconData, Color) item) {
+      final (titulo, descricao, icon, color) = item;
       return Expanded(
-        child: onboardingChoice(
-          selected: goal == title,
-          onTap: () => onSelected(title),
+        child: opcaoAvaliacao(
+          selecionado: objetivo == titulo,
+          aoTocar: () => aoSelecionar(titulo),
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              onboardingBadge(icon, color),
+              iconeAvaliacao(icon, color),
               const SizedBox(height: 10),
-              onboardingCaption(title, description, centered: true),
+              legendaAvaliacao(titulo, descricao, centralizado: true),
             ],
           ),
         ),
       );
     }
 
-    return onboardingLayout(
-      title: 'Qual seu objetivo?',
-      subtitle: 'Vamos criar seu plano de treino personalizado',
-      label: editingGoal ? 'Salvar objetivo' : 'Começar a Treinar',
-      back: onBack,
-      onContinue: onContinue,
+    return estruturaAvaliacao(
+      titulo: 'Qual seu objetivo?',
+      subtitulo: 'Vamos criar seu plano de treino personalizado',
+      rotulo: editandoObjetivo ? 'Salvar objetivo' : 'Começar a Treinar',
+      voltar: aoVoltar,
+      aoContinuar: aoContinuar,
       children: [
-        for (var index = 0; index < goals.length; index += 2)
+        for (var indice = 0; indice < objetivos.length; indice += 2)
           Padding(
             padding: const EdgeInsets.only(bottom: 14),
             // Mantém os dois cartões da linha com a mesma altura quando um texto ocupa mais linhas.
@@ -78,9 +78,9 @@ class GoalScreen extends StatelessWidget {
               child: Row(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
-                  goalCard(goals[index]),
+                  cartaoObjetivo(objetivos[indice]),
                   const SizedBox(width: 14),
-                  goalCard(goals[index + 1]),
+                  cartaoObjetivo(objetivos[indice + 1]),
                 ],
               ),
             ),

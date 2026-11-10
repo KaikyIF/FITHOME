@@ -1,29 +1,29 @@
 import 'package:flutter/material.dart';
-import '../widgets/onboarding_widgets.dart';
+import '../componentes/componentes_avaliacao.dart';
 
 /// Seleciona o nível de experiência.
-class LevelScreen extends StatelessWidget {
-  const LevelScreen(
+class TelaNivel extends StatelessWidget {
+  const TelaNivel(
       {super.key,
-      required this.level,
-      required this.onSelected,
-      required this.onBack,
-      required this.onContinue});
+      required this.nivel,
+      required this.aoSelecionar,
+      required this.aoVoltar,
+      required this.aoContinuar});
 
-  final String level;
-  final ValueChanged<String> onSelected;
-  final VoidCallback onBack;
-  final VoidCallback onContinue;
+  final String nivel;
+  final ValueChanged<String> aoSelecionar;
+  final VoidCallback aoVoltar;
+  final VoidCallback aoContinuar;
 
   @override
-  Widget build(BuildContext context) => onboardingLayout(
-        title: 'Qual seu nível?',
-        subtitle: 'Escolha o nível que melhor representa você',
-        label: 'Continuar',
-        onContinue: onContinue,
-        back: onBack,
+  Widget build(BuildContext contexto) => estruturaAvaliacao(
+        titulo: 'Qual seu nível?',
+        subtitulo: 'Escolha o nível que melhor representa você',
+        rotulo: 'Continuar',
+        aoContinuar: aoContinuar,
+        voltar: aoVoltar,
         children: [
-          for (final (title, description, icon, color) in const [
+          for (final (titulo, descricao, icon, color) in const [
             (
               'Iniciante',
               'Começando agora ou retornando após pausa',
@@ -45,14 +45,14 @@ class LevelScreen extends StatelessWidget {
           ])
             Padding(
               padding: const EdgeInsets.only(bottom: 14),
-              child: onboardingChoice(
-                selected: level == title,
-                onTap: () => onSelected(title),
+              child: opcaoAvaliacao(
+                selecionado: nivel == titulo,
+                aoTocar: () => aoSelecionar(titulo),
                 child: Row(
                   children: [
-                    onboardingBadge(icon, color),
+                    iconeAvaliacao(icon, color),
                     const SizedBox(width: 14),
-                    Expanded(child: onboardingCaption(title, description)),
+                    Expanded(child: legendaAvaliacao(titulo, descricao)),
                   ],
                 ),
               ),

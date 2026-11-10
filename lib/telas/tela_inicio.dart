@@ -1,36 +1,36 @@
 import 'package:flutter/material.dart';
-import '../widgets/training_widgets.dart';
+import '../componentes/componentes_treino.dart';
 
 /// Mostra o resumo e os treinos disponíveis.
-class HomeScreen extends StatelessWidget {
-  const HomeScreen(
+class TelaInicio extends StatelessWidget {
+  const TelaInicio(
       {super.key,
-      required this.name,
-      required this.level,
-      required this.completed,
-      required this.activityCount,
-      required this.onWorkout});
+      required this.nome,
+      required this.nivel,
+      required this.concluidos,
+      required this.totalAtividades,
+      required this.aoAbrirTreino});
 
-  final String name;
-  final String level;
-  final int completed;
-  final int activityCount;
-  final ValueChanged<String> onWorkout;
+  final String nome;
+  final String nivel;
+  final int concluidos;
+  final int totalAtividades;
+  final ValueChanged<String> aoAbrirTreino;
 
   @override
-  Widget build(BuildContext context) => ListView(
+  Widget build(BuildContext contexto) => ListView(
         children: [
           Container(
             padding: const EdgeInsets.all(22),
             decoration: BoxDecoration(
-              gradient: const LinearGradient(colors: [purple, pink]),
+              gradient: const LinearGradient(colors: [roxo, rosa]),
               borderRadius: BorderRadius.circular(22),
             ),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  'Olá, ${name.isEmpty ? 'Atleta' : name}! 👋',
+                  'Olá, ${nome.isEmpty ? 'Atleta' : nome}! 👋',
                   style: const TextStyle(
                     color: Colors.white,
                     fontSize: 24,
@@ -48,29 +48,34 @@ class HomeScreen extends StatelessWidget {
                   runSpacing: 8,
                   children: [
                     Text(
-                      '$completed\nTreinos',
+                      '$concluidos\nTreinos',
                       style: const TextStyle(color: Colors.white),
                     ),
                     Text(
-                      '${activityCount}\nAtividades',
+                      '${totalAtividades}\nAtividades',
                       style: const TextStyle(color: Colors.white),
                     ),
-                    Text(level, style: const TextStyle(color: Colors.white)),
+                    Text(nivel, style: const TextStyle(color: Colors.white)),
                   ],
                 ),
               ],
             ),
           ),
           const SizedBox(height: 24),
-          heading('Treinos para você', 'Escolha um treino para começar.'),
-          for (final x in ['Força em Casa', 'Cardio', 'Flexibilidade', 'HIIT'])
+          cabecalho('Treinos para você', 'Escolha um treino para começar.'),
+          for (final treino in [
+            'Força em Casa',
+            'Cardio',
+            'Flexibilidade',
+            'HIIT'
+          ])
             Card(
               child: ListTile(
-                leading: const Icon(Icons.fitness_center, color: purple),
-                title: Text(x),
+                leading: const Icon(Icons.fitness_center, color: roxo),
+                title: Text(treino),
                 subtitle: const Text('Treino em casa • Sem equipamentos'),
                 trailing: const Icon(Icons.chevron_right),
-                onTap: () => onWorkout(x),
+                onTap: () => aoAbrirTreino(treino),
               ),
             ),
         ],

@@ -1,41 +1,41 @@
 import 'package:flutter/material.dart';
-import 'onboarding_widgets.dart';
+import 'componentes_avaliacao.dart';
 
 /// Compartilha a aparência de login e cadastro. O cadastro fornece o campo de nome.
-class AccessForm extends StatelessWidget {
-  const AccessForm(
+class FormularioAcesso extends StatelessWidget {
+  const FormularioAcesso(
       {super.key,
       required this.email,
       required this.password,
-      required this.showPassword,
-      required this.onTogglePassword,
-      required this.submit,
-      this.name,
-      this.confirmPassword,
-      this.acceptedTerms = false,
-      this.onTermsChanged,
-      this.onBack,
-      this.onRegister,
-      this.onForgotPassword});
+      required this.mostrarSenha,
+      required this.aoAlternarSenha,
+      required this.enviar,
+      this.nome,
+      this.confirmarSenha,
+      this.aceitouTermos = false,
+      this.aoAlterarAceite,
+      this.aoVoltar,
+      this.aoCadastrar,
+      this.aoEsquecerSenha});
 
   final TextEditingController email;
   final TextEditingController password;
-  final bool showPassword;
-  final VoidCallback onTogglePassword;
-  final VoidCallback submit;
-  final TextEditingController? name;
-  final TextEditingController? confirmPassword;
-  final bool acceptedTerms;
-  final ValueChanged<bool?>? onTermsChanged;
-  final VoidCallback? onBack;
-  final VoidCallback? onRegister;
-  final VoidCallback? onForgotPassword;
+  final bool mostrarSenha;
+  final VoidCallback aoAlternarSenha;
+  final VoidCallback enviar;
+  final TextEditingController? nome;
+  final TextEditingController? confirmarSenha;
+  final bool aceitouTermos;
+  final ValueChanged<bool?>? aoAlterarAceite;
+  final VoidCallback? aoVoltar;
+  final VoidCallback? aoCadastrar;
+  final VoidCallback? aoEsquecerSenha;
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext contexto) {
     // O campo de nome está presente no cadastro e define os campos adicionais do formulário.
-    final registering = name != null;
-    const legal = 'Termos de Uso e Política de Privacidade';
+    final cadastrando = nome != null;
+    const termosUso = 'Termos de Uso e Política de Privacidade';
     return DecoratedBox(
       decoration: const BoxDecoration(
         gradient: LinearGradient(
@@ -46,26 +46,26 @@ class AccessForm extends StatelessWidget {
       ),
       child: SafeArea(
         child: LayoutBuilder(
-          builder: (context, constraints) {
+          builder: (contexto, restricoes) {
             return SingleChildScrollView(
               keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
               padding: const EdgeInsets.all(22),
               child: ConstrainedBox(
                 constraints: BoxConstraints(
-                  minHeight: (constraints.maxHeight - 44)
+                  minHeight: (restricoes.maxHeight - 44)
                       .clamp(0.0, double.infinity)
                       .toDouble(),
                 ),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.stretch,
-                  mainAxisAlignment: registering
+                  mainAxisAlignment: cadastrando
                       ? MainAxisAlignment.start
                       : MainAxisAlignment.center,
                   children: [
-                    if (registering) ...[
+                    if (cadastrando) ...[
                       Align(
                         alignment: Alignment.centerLeft,
-                        child: backButton(onBack!, white: true),
+                        child: botaoVoltar(aoVoltar!, branco: true),
                       ),
                       const SizedBox(height: 12),
                     ] else ...[
@@ -93,9 +93,9 @@ class AccessForm extends StatelessWidget {
                       const SizedBox(height: 20),
                     ],
                     Text(
-                      registering ? 'Criar Conta' : 'FitHome',
+                      cadastrando ? 'Criar Conta' : 'FitHome',
                       textAlign:
-                          registering ? TextAlign.start : TextAlign.center,
+                          cadastrando ? TextAlign.start : TextAlign.center,
                       style: const TextStyle(
                         color: Colors.white,
                         fontSize: 34,
@@ -104,68 +104,69 @@ class AccessForm extends StatelessWidget {
                     ),
                     const SizedBox(height: 8),
                     Text(
-                      registering
+                      cadastrando
                           ? 'Comece sua jornada fitness hoje'
                           : 'Seu treino personalizado em casa',
                       textAlign:
-                          registering ? TextAlign.start : TextAlign.center,
+                          cadastrando ? TextAlign.start : TextAlign.center,
                       style: const TextStyle(color: Colors.white, fontSize: 14),
                     ),
-                    SizedBox(height: registering ? 28 : 45),
-                    if (registering)
-                      onboardingInput(
+                    SizedBox(height: cadastrando ? 28 : 45),
+                    if (cadastrando)
+                      campoAvaliacao(
                         'Nome Completo',
-                        name!,
-                        hint: 'Seu nome',
+                        nome!,
+                        sugestao: 'Seu nome',
                         icon: Icons.person_outline,
-                        light: true,
-                        capitalization: TextCapitalization.words,
+                        claro: true,
+                        capitalizacao: TextCapitalization.words,
                       ),
-                    onboardingInput(
+                    campoAvaliacao(
                       'Email',
                       email,
-                      hint: 'seu@email.com',
+                      sugestao: 'seu@email.com',
                       icon: Icons.mail_outline,
-                      light: true,
-                      keyboard: TextInputType.emailAddress,
+                      claro: true,
+                      teclado: TextInputType.emailAddress,
                     ),
-                    onboardingInput(
+                    campoAvaliacao(
                       'Senha',
                       password,
-                      hint: registering ? 'Mínimo 6 caracteres' : '••••••••',
+                      sugestao:
+                          cadastrando ? 'Mínimo 6 caracteres' : '••••••••',
                       icon: Icons.lock_outline,
-                      light: true,
-                      obscure: !showPassword,
-                      toggle: onTogglePassword,
+                      claro: true,
+                      ocultar: !mostrarSenha,
+                      alternar: aoAlternarSenha,
                     ),
-                    if (registering) ...[
-                      onboardingInput(
+                    if (cadastrando) ...[
+                      campoAvaliacao(
                         'Confirmar Senha',
-                        confirmPassword!,
-                        hint: 'Digite a senha novamente',
+                        confirmarSenha!,
+                        sugestao: 'Digite a senha novamente',
                         icon: Icons.lock_outline,
-                        light: true,
-                        obscure: true,
+                        claro: true,
+                        ocultar: true,
                       ),
                       CheckboxListTile(
                         contentPadding: EdgeInsets.zero,
                         controlAffinity: ListTileControlAffinity.leading,
                         side: const BorderSide(color: Colors.white70),
                         activeColor: Colors.white,
-                        checkColor: onboardingAccent,
+                        checkColor: corDestaque,
                         title: const Text(
-                          'Aceito os $legal do FitHome',
+                          'Aceito os $termosUso do FitHome',
                           style: TextStyle(color: Colors.white, fontSize: 13),
                         ),
-                        value: acceptedTerms,
-                        onChanged: onTermsChanged,
+                        value: aceitouTermos,
+                        onChanged: aoAlterarAceite,
                       ),
                       const SizedBox(height: 20),
                     ] else
                       Align(
                         alignment: Alignment.centerLeft,
                         child: TextButton(
-                          onPressed: onForgotPassword,
+                          onPressed: aoEsquecerSenha,
                           style: TextButton.styleFrom(
                             foregroundColor: Colors.white,
                             padding: EdgeInsets.zero,
@@ -173,12 +174,12 @@ class AccessForm extends StatelessWidget {
                           child: const Text('Esqueceu a senha?'),
                         ),
                       ),
-                    onboardingButton(
-                      registering ? 'Criar Conta' : 'Entrar',
-                      submit,
-                      white: true,
+                    botaoAvaliacao(
+                      cadastrando ? 'Criar Conta' : 'Entrar',
+                      enviar,
+                      branco: true,
                     ),
-                    if (!registering) ...[
+                    if (!cadastrando) ...[
                       const SizedBox(height: 24),
                       const Text(
                         'Ainda não tem uma conta?',
@@ -186,10 +187,10 @@ class AccessForm extends StatelessWidget {
                         style: TextStyle(color: Colors.white),
                       ),
                       const SizedBox(height: 12),
-                      onboardingButton('Criar Conta', onRegister!, white: true),
+                      botaoAvaliacao('Criar Conta', aoCadastrar!, branco: true),
                       const SizedBox(height: 26),
                       const Text(
-                        'Ao continuar, você concorda com nossos $legal.',
+                        'Ao continuar, você concorda com nossos $termosUso.',
                         textAlign: TextAlign.center,
                         style: TextStyle(color: Colors.white, fontSize: 11),
                       ),
