@@ -36,6 +36,7 @@ class WorkoutScreen extends StatelessWidget {
               title: Text(e),
               subtitle: const Text('3 séries • 12 repetições'),
               value: done.contains(e),
+              // Envia a marcação ao estado da sessão para atualizar a lista de exercícios.
               onChanged: (value) => onToggle(e, value == true),
             ),
           const Spacer(),

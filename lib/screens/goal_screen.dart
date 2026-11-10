@@ -73,6 +73,7 @@ class GoalScreen extends StatelessWidget {
         for (var index = 0; index < goals.length; index += 2)
           Padding(
             padding: const EdgeInsets.only(bottom: 14),
+            // Mantém os dois cartões da linha com a mesma altura quando um texto ocupa mais linhas.
             child: IntrinsicHeight(
               child: Row(
                 crossAxisAlignment: CrossAxisAlignment.stretch,

@@ -36,6 +36,7 @@ Widget onboardingLayout({
       child: LayoutBuilder(
         builder: (context, constraints) {
           return SingleChildScrollView(
+            // Arrastar o formulário recolhe o teclado e facilita o acesso ao botão inferior.
             keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
             padding: EdgeInsets.fromLTRB(22, back == null ? 46 : 14, 22, 22),
             child: ConstrainedBox(

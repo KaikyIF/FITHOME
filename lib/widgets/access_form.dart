@@ -33,6 +33,7 @@ class AccessForm extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // O campo de nome está presente no cadastro e define os campos adicionais do formulário.
     final registering = name != null;
     const legal = 'Termos de Uso e Política de Privacidade';
     return DecoratedBox(

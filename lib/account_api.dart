@@ -36,6 +36,7 @@ Future<Map<String, dynamic>> requestAccount(
   final client = HttpClient()..connectionTimeout = timeout;
   try {
     return await (() async {
+      // A query acao seleciona cadastro ou login no mesmo arquivo PHP.
       final request = await client.postUrl(
         url.replace(queryParameters: {...url.queryParameters, 'acao': action}),
       );
@@ -44,7 +45,9 @@ Future<Map<String, dynamic>> requestAccount(
       request.headers.contentType = ContentType.json;
       request.write(jsonEncode(data));
       final response = await request.close();
+      // Decodifica o JSON em UTF-8 para preservar acentos nas mensagens e nos dados.
       final body = jsonDecode(await response.transform(utf8.decoder).join());
+      // A API responde com 200 no login e 201 ao criar a conta.
       if (response.statusCode != 200 && response.statusCode != 201) {
         final message = body is Map<String, dynamic> ? body['erro'] : null;
         throw ApiException(
@@ -53,6 +56,7 @@ Future<Map<String, dynamic>> requestAccount(
               : 'A API não conseguiu concluir a solicitação.',
         );
       }
+      // Confere a estrutura da resposta antes de devolver os dados à tela.
       if (body is! Map<String, dynamic> ||
           body['usuario'] is! Map<String, dynamic>) {
         throw const FormatException();

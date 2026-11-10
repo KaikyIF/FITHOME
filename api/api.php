@@ -62,6 +62,7 @@ function database(): PDO
         throw new RuntimeException('Configure DB_USER e DB_PASSWORD no servidor.');
     }
 
+    // Configura UTF-8 e prepara as consultas diretamente no MySQL.
     return new PDO("mysql:host=$host;port=$port;dbname=$name;charset=utf8mb4", $user, $pass, [
         PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
         PDO::ATTR_EMULATE_PREPARES => false,
@@ -85,6 +86,7 @@ function account(PDO $db, int $id): array
     ');
     $query->execute([$id]);
     $row = $query->fetch();
+    // Traduz também os objetivos que podem existir em avaliações antigas.
     $goals = GOALS + ['Ganhar Resistência' => 'condicionamento', 'Outro' => 'outro'];
 
     return [
@@ -123,6 +125,7 @@ function register(PDO $db, array $input, string $email, string $password): never
     if (!is_string($goal) || !isset(GOALS[$goal]) || !is_string($level) || !isset(LEVELS[$level])) {
         invalid('Selecione um objetivo e um nível válidos.');
     }
+    // Exige pelo menos uma escolha. Nenhuma só pode ser enviada sozinha.
     $conditions = $input['condicoes_saude'] ?? null;
     if (!is_array($conditions) || !array_is_list($conditions) || count($conditions) < 1
         || count($conditions) > count(CONDITIONS)
@@ -134,9 +137,11 @@ function register(PDO $db, array $input, string $email, string $password): never
             invalid('Selecione uma condição de saúde válida.');
         }
     }
+    // Remove escolhas duplicadas e mantém a lista em formato JSON.
     $conditionsJson = json_encode(array_values(array_unique($conditions)), JSON_UNESCAPED_UNICODE | JSON_THROW_ON_ERROR);
     // Recalcula o IMC a partir das mesmas medidas gravadas no MySQL.
     $bmi = round($weight / (($height / 100) ** 2), 2);
+    // Transforma a senha em hash bcrypt antes de montar o INSERT.
     $hash = password_hash($password, PASSWORD_BCRYPT);
 
     // Qualquer falha desfaz as três gravações do cadastro.
@@ -144,6 +149,7 @@ function register(PDO $db, array $input, string $email, string $password): never
     try {
         $db->prepare('INSERT INTO usuarios (email, senha_hash, algoritmo_senha) VALUES (?, ?, ?)')
             ->execute([$email, $hash, 'bcrypt']);
+        // O ID gerado para a conta vincula o perfil e a avaliação ao mesmo usuário.
         $id = (int) $db->lastInsertId();
         $db->prepare('INSERT INTO perfis_usuario (usuario_id, nome_completo, altura_cm, peso_atual_kg) VALUES (?, ?, ?, ?)')
             ->execute([$id, $name, $height, $weight]);
@@ -153,6 +159,7 @@ function register(PDO $db, array $input, string $email, string $password): never
             VALUES (?, ?, ?, ?, ?, ?, ?)
         ')->execute([$id, $age, $bmi, GOALS[$goal], LEVELS[$level], $conditionsJson, $weight]);
         $result = account($db, $id);
+        // Confirma a conta só depois que o perfil e a avaliação estiverem disponíveis.
         $db->commit();
     } catch (Throwable $error) {
         if ($db->inTransaction()) {
@@ -178,6 +185,7 @@ if (!in_array($action, ['cadastro', 'login'], true)) {
 }
 
 try {
+    // Lê até um byte além do limite para detectar corpos maiores que 16 KiB.
     $body = file_get_contents('php://input', false, null, 0, 16385);
     if ($body === false || strlen($body) > 16384) {
         reply(413, ['erro' => 'Requisição muito grande.']);
@@ -190,6 +198,7 @@ try {
     if (!is_array($input) || array_is_list($input)) {
         reply(400, ['erro' => 'Envie um objeto JSON.']);
     }
+    // Normaliza o e-mail da mesma forma no cadastro e no login.
     $email = is_string($input['email'] ?? null) ? strtolower(trim($input['email'])) : '';
     $password = $input['senha'] ?? null;
     if (strlen($email) > 190 || !filter_var($email, FILTER_VALIDATE_EMAIL)) {

@@ -34,6 +34,7 @@ class MeasurementsScreen extends StatelessWidget {
           onboardingInput('Altura (cm)', height,
               hint: 'Ex.: 172',
               keyboard: const TextInputType.numberWithOptions(decimal: true)),
+          // Reconstrói o resultado quando o usuário edita peso ou altura.
           ListenableBuilder(
             listenable: measurements,
             builder: (context, _) {
@@ -44,6 +45,7 @@ class MeasurementsScreen extends StatelessWidget {
               final bmi = kilograms != null && meters > 0
                   ? kilograms / (meters * meters)
                   : null;
+              // Formata com vírgula e uma casa decimal. O traço indica um cálculo indisponível.
               final value = bmi != null && bmi.isFinite && bmi > 0
                   ? bmi.toStringAsFixed(1).replaceAll('.', ',')
                   : '—';
@@ -55,6 +57,7 @@ class MeasurementsScreen extends StatelessWidget {
                   borderRadius: BorderRadius.circular(14),
                 ),
                 child: Semantics(
+                  // Permite que leitores de tela anunciem a mudança do resultado.
                   liveRegion: true,
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,

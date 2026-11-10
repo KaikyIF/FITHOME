@@ -39,6 +39,7 @@ class HealthScreen extends StatelessWidget {
             Padding(
               padding: const EdgeInsets.only(bottom: 10),
               child: onboardingChoice(
+                // A seleção vem do estado da avaliação e é preservada ao voltar para esta etapa.
                 selected: health.contains(condition),
                 onTap: () => onToggle(condition),
                 child: Align(

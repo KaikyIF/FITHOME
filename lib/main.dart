@@ -62,11 +62,14 @@ class _FitAppState extends State<FitApp> {
       weight = TextEditingController(),
       height = TextEditingController();
   final confirmPassword = TextEditingController();
+  // Os dois campos notificam o cartão de IMC pelo mesmo Listenable.
   late final measurements = Listenable.merge([weight, height]);
+  // O conjunto mantém cada condição de saúde selecionada uma única vez.
   final health = <String>{};
   bool showPassword = false, acceptedTerms = false;
   bool editingLevel = false, editingGoal = false;
   String previousChoice = '';
+  // Controla o indicador de carregamento e impede o envio duplicado do formulário.
   bool sendingAccount = false;
   int? userId;
 
@@ -92,9 +95,11 @@ class _FitAppState extends State<FitApp> {
     'Abdominal',
     'Polichinelo',
   ];
+  // Guarda os exercícios marcados durante a sessão atual.
   final done = <String>{};
   // O contador de treinos fica no dispositivo e é separado por conta.
   Future<void> _save() async {
+    // Captura a conta e o total antes da espera pelo armazenamento local.
     final id = userId;
     final count = completed;
     if (id == null) return;
@@ -202,6 +207,7 @@ class _FitAppState extends State<FitApp> {
 
   // Só abre o app depois que a API confirmar e devolver a conta.
   Future<void> _submitAccount(String action, Map<String, Object?> data) async {
+    // Ignora novos toques enquanto a requisição anterior estiver pendente.
     if (sendingAccount) return;
     ScaffoldMessenger.of(context).hideCurrentSnackBar();
     FocusManager.instance.primaryFocus?.unfocus();
@@ -229,6 +235,7 @@ class _FitAppState extends State<FitApp> {
           (accountWeight != null && accountWeight is! num)) {
         throw const ApiException('A API retornou um cadastro incompleto.');
       }
+      // O servidor confirma o perfil, e o dispositivo recupera o contador dessa conta.
       var localCompleted = 0;
       try {
         final preferences = await SharedPreferences.getInstance();
@@ -236,6 +243,7 @@ class _FitAppState extends State<FitApp> {
       } on Exception {
         // O histórico local é independente do acesso à conta.
       }
+      // Uma resposta pode chegar depois que o widget já saiu da tela.
       if (!mounted) return;
       setState(() {
         userId = id;
@@ -260,6 +268,7 @@ class _FitAppState extends State<FitApp> {
       });
     } on ApiException catch (error) {
       if (mounted) _showMessage(error.message);
+    // Desbloqueia o formulário também quando a API retorna um erro.
     } finally {
       if (mounted) setState(() => sendingAccount = false);
     }
@@ -270,6 +279,7 @@ class _FitAppState extends State<FitApp> {
     final years = int.tryParse(age.text.trim());
     final kilograms = parsePositiveNumber(weight.text);
     final centimeters = parsePositiveNumber(height.text);
+    // Volta à etapa correspondente quando faltam dados obrigatórios.
     if (name.text.trim().isEmpty || years == null || years < 1 || years > 120) {
       _showMessage('Informe seu nome e uma idade entre 1 e 120 anos.');
       _go(3);
@@ -290,6 +300,7 @@ class _FitAppState extends State<FitApp> {
       _go(5);
       return;
     }
+    // O servidor recebe as medidas e calcula o IMC que será gravado.
     _submitAccount('cadastro', {
       'nome': name.text.trim(),
       'email': email.text.trim(),
@@ -313,6 +324,7 @@ class _FitAppState extends State<FitApp> {
       _showMessage('Informe um e-mail válido.');
       return;
     }
+    // O mínimo depende do fluxo. O bcrypt usa um limite de 72 bytes.
     final minimum = registering ? 6 : 1;
     if (password.text.runes.length < minimum ||
         utf8.encode(password.text).length > 72) {
@@ -499,6 +511,7 @@ class _FitAppState extends State<FitApp> {
 
   @override
   Widget build(BuildContext context) {
+    // A tela de objetivo pertence à avaliação mesmo com o identificador 7. O 6 abre as abas.
     final onboarding = page <= 5 || page == 7;
     if (onboarding) {
       // Bloqueia o formulário enquanto o servidor processa a solicitação.
