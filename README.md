@@ -40,6 +40,20 @@ A API está em um único arquivo, `api/api.php`. Para hospedá-la com PHP 8.4 e 
 
 ## Rodar o app
 
+### Chrome ou Edge no Windows
+
+Com o Docker Desktop aberto, execute estes comandos na pasta que contém `pubspec.yaml`:
+
+```powershell
+docker compose up --build -d
+flutter pub get
+flutter run -d chrome --web-port=7357
+```
+
+Para Edge, substitua `-d chrome` por `-d edge`. Mantenha a porta 7357 para corresponder às origens locais permitidas pela API. Em uma hospedagem separada, configure `FITHOME_ORIGENS_WEB` na API com a origem exata do site e passe a URL HTTPS da API com `--dart-define=FITHOME_API_URL=...` ao compilar o app.
+
+### Android
+
 O projeto inclui Android. Com o SDK do Android configurado no Flutter e um emulador aberto:
 
 ```powershell

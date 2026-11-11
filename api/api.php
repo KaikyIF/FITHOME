@@ -174,6 +174,20 @@ function cadastrar(PDO $banco, array $entrada, string $email, string $senha): ne
     responder(201, ['usuario' => $resultado]);
 }
 
+// O navegador envia OPTIONS antes de enviar o JSON de outra origem.
+$origem = $_SERVER['HTTP_ORIGIN'] ?? '';
+$origensPermitidas = array_map('trim', explode(',', getenv('FITHOME_ORIGENS_WEB') ?: ''));
+header('Vary: Origin');
+if ($origem !== '' && in_array($origem, $origensPermitidas, true)) {
+    header('Access-Control-Allow-Origin: ' . $origem);
+    header('Access-Control-Allow-Methods: POST, OPTIONS');
+    header('Access-Control-Allow-Headers: Content-Type');
+    if (($_SERVER['REQUEST_METHOD'] ?? '') === 'OPTIONS') {
+        http_response_code(204);
+        exit;
+    }
+}
+
 // Restringe a API às ações POST de cadastro e login.
 if (($_SERVER['REQUEST_METHOD'] ?? '') !== 'POST') {
     header('Allow: POST');

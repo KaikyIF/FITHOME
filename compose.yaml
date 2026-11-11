@@ -1,3 +1,5 @@
+name: fithome
+
 services:
   # O banco fica na rede interna do Docker e persiste em um volume.
   db:
@@ -23,6 +25,7 @@ services:
       DB_HOST: db
       DB_NAME: fithome
       DB_USER: fithome_app
+      FITHOME_ORIGENS_WEB: "${FITHOME_ORIGENS_WEB:-http://localhost:7357,http://127.0.0.1:7357}"
       DB_PASSWORD: ${FITHOME_DB_PASSWORD:-fithome_dev_password}
     ports:
       - "${FITHOME_BIND:-127.0.0.1}:${FITHOME_PORT:-8088}:80"
