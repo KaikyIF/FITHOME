@@ -97,6 +97,10 @@ class _EstadoAplicativoFitHome extends State<AplicativoFitHome> {
     'Abdominal',
     'Polichinelo',
   ];
+  static const _exerciciosComplementares = [
+    'Burpee',
+    'Alongamento Posterior da Coxa',
+  ];
   // Guarda os exercícios marcados durante a sessão atual.
   final marcados = <String>{};
   // O contador de treinos fica no dispositivo e é separado por conta.
@@ -445,7 +449,8 @@ class _EstadoAplicativoFitHome extends State<AplicativoFitHome> {
             }),
           ),
         1 => TelaBibliotecaExercicios(
-            exercicios: exercicios,
+            exercicios: [...exercicios, ..._exerciciosComplementares],
+            aoVoltar: () => setState(() => aba = 0),
             aoAbrirExercicio: (valor) => setState(() {
               selecionado = valor;
               pagina = 9;
@@ -471,7 +476,7 @@ class _EstadoAplicativoFitHome extends State<AplicativoFitHome> {
         8 => TelaTreino(
             selecionado: selecionado,
             nivel: nivel,
-            exercicios: exercicios,
+            exercicios: [...exercicios, ..._exerciciosComplementares],
             marcados: marcados,
             aoAlternar: (exercicio, marcado) => setState(() =>
                 marcado ? marcados.add(exercicio) : marcados.remove(exercicio)),
@@ -538,25 +543,30 @@ class _EstadoAplicativoFitHome extends State<AplicativoFitHome> {
       );
     }
     final corpo = _telaTreino();
+    final naBiblioteca = pagina == 6 && aba == 1;
     return Scaffold(
-      appBar: AppBar(
-        title: const Text(
-          'FitHome',
-          style: TextStyle(fontWeight: FontWeight.bold),
-        ),
-        foregroundColor: roxo,
-        leading: pagina == 8 || pagina == 9 || pagina == 11
-            ? IconButton(
-                icon: const Icon(Icons.arrow_back),
-                onPressed: () {
-                  pausar();
-                  setState(() => pagina = pagina == 9 ? 6 : 8);
-                },
-              )
-            : null,
-      ),
+      appBar: naBiblioteca
+          ? null
+          : AppBar(
+              title: const Text(
+                'FitHome',
+                style: TextStyle(fontWeight: FontWeight.bold),
+              ),
+              foregroundColor: roxo,
+              leading: pagina == 8 || pagina == 9 || pagina == 11
+                  ? IconButton(
+                      icon: const Icon(Icons.arrow_back),
+                      onPressed: () {
+                        pausar();
+                        setState(() => pagina = pagina == 9 ? 6 : 8);
+                      },
+                    )
+                  : null,
+            ),
       body: SafeArea(
-        child: Padding(padding: const EdgeInsets.all(20), child: corpo),
+        child: naBiblioteca
+            ? corpo
+            : Padding(padding: const EdgeInsets.all(20), child: corpo),
       ),
       bottomNavigationBar: (pagina == 6)
           ? NavigationBar(

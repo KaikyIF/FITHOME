@@ -22,24 +22,31 @@ class TelaTreino extends StatelessWidget {
   @override
   Widget build(BuildContext contexto) => Column(
         children: [
-          cabecalho(selecionado, 'Treino adaptado ao nível $nivel'),
-          const Card(
-            child: Padding(
-              padding: EdgeInsets.all(16),
-              child: Text(
-                'Aqueça antes de começar. Mantenha a postura correta, respeite seus limites e interrompa em caso de dor.',
-              ),
+          Expanded(
+            child: ListView(
+              children: [
+                cabecalho(selecionado, 'Treino adaptado ao nível $nivel'),
+                const Card(
+                  child: Padding(
+                    padding: EdgeInsets.all(16),
+                    child: Text(
+                      'Aqueça antes de começar. Mantenha a postura correta, respeite seus limites e interrompa em caso de dor.',
+                    ),
+                  ),
+                ),
+                for (final exercicio in {
+                  ...exercicios.take(4),
+                  ...exercicios.where(marcados.contains),
+                })
+                  CheckboxListTile(
+                    title: Text(exercicio),
+                    subtitle: const Text('3 séries • 12 repetições'),
+                    value: marcados.contains(exercicio),
+                    onChanged: (valor) => aoAlternar(exercicio, valor == true),
+                  ),
+              ],
             ),
           ),
-          for (final exercicio in exercicios.take(4))
-            CheckboxListTile(
-              title: Text(exercicio),
-              subtitle: const Text('3 séries • 12 repetições'),
-              value: marcados.contains(exercicio),
-              // Envia a marcação ao estado da sessão para atualizar a lista de exercícios.
-              onChanged: (valor) => aoAlternar(exercicio, valor == true),
-            ),
-          const Spacer(),
           botaoPrincipal('Iniciar treino', aoIniciar),
         ],
       );
