@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../componentes/componentes_treino.dart';
+import '../dados/exercicios.dart';
 
 /// Apresenta os exercícios e permite marcá-los.
 class TelaTreino extends StatelessWidget {
@@ -34,20 +35,27 @@ class TelaTreino extends StatelessWidget {
                     ),
                   ),
                 ),
-                for (final exercicio in {
-                  ...exercicios.take(4),
-                  ...exercicios.where(marcados.contains),
-                })
+                for (final exercicio in exercicios)
                   CheckboxListTile(
                     title: Text(exercicio),
-                    subtitle: const Text('3 séries • 12 repetições'),
+                    subtitle: Text(
+                      '${fichasExercicios[exercicio]!.segundos} s por intervalo',
+                    ),
                     value: marcados.contains(exercicio),
                     onChanged: (valor) => aoAlternar(exercicio, valor == true),
                   ),
               ],
             ),
           ),
-          botaoPrincipal('Iniciar treino', aoIniciar),
+          const SizedBox(height: 12),
+          FilledButton(
+            onPressed: marcados.isEmpty ? null : aoIniciar,
+            style: FilledButton.styleFrom(
+              backgroundColor: roxo,
+              minimumSize: const Size.fromHeight(48),
+            ),
+            child: const Text('Iniciar treino'),
+          ),
         ],
       );
 }

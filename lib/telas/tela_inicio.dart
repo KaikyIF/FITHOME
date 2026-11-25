@@ -63,6 +63,7 @@ class TelaInicio extends StatelessWidget {
     final estiloSecao = tema.textTheme.titleMedium;
 
     return ListView(
+      key: const PageStorageKey('inicio'),
       children: [
         Center(
           child: ConstrainedBox(

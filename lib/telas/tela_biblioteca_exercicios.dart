@@ -4,72 +4,7 @@ import 'package:flutter/material.dart';
 
 import '../componentes/componentes_treino.dart';
 
-enum _Categoria {
-  todos('Todos', Icons.fitness_center),
-  cardio('Cardio', Icons.local_fire_department_outlined),
-  forca('Força', Icons.fitness_center),
-  flexibilidade('Flexibilidade', Icons.favorite_border),
-  hiit('HIIT', Icons.bolt_outlined);
-
-  const _Categoria(this.rotulo, this.icone);
-
-  final String rotulo;
-  final IconData icone;
-}
-
-typedef _Ficha = ({
-  Set<_Categoria> categorias,
-  String descricao,
-  String nivel,
-  String musculos,
-});
-
-const _fichas = <String, _Ficha>{
-  'Flexão de Braço': (
-    categorias: {_Categoria.forca},
-    descricao: 'Exercício fundamental para força da parte superior do corpo.',
-    nivel: 'Intermediário',
-    musculos: 'Peito, tríceps e ombros',
-  ),
-  'Agachamento': (
-    categorias: {_Categoria.forca},
-    descricao: 'Exercício para fortalecer os membros inferiores.',
-    nivel: 'Iniciante',
-    musculos: 'Pernas e glúteos',
-  ),
-  'Burpee': (
-    categorias: {_Categoria.cardio, _Categoria.hiit},
-    descricao: 'Movimento de corpo inteiro para trabalhar o condicionamento.',
-    nivel: 'Avançado',
-    musculos: 'Corpo todo',
-  ),
-  'Prancha': (
-    categorias: {_Categoria.forca},
-    descricao:
-        'Exercício isométrico para fortalecer a região central do corpo.',
-    nivel: 'Intermediário',
-    musculos: 'Abdômen e ombros',
-  ),
-  'Abdominal': (
-    categorias: {_Categoria.forca},
-    descricao: 'Movimento controlado para fortalecer o abdômen.',
-    nivel: 'Iniciante',
-    musculos: 'Abdômen',
-  ),
-  'Polichinelo': (
-    categorias: {_Categoria.cardio, _Categoria.hiit},
-    descricao: 'Movimento aeróbico que combina saltos com elevação dos braços.',
-    nivel: 'Iniciante',
-    musculos: 'Pernas e ombros',
-  ),
-  'Alongamento Posterior da Coxa': (
-    categorias: {_Categoria.flexibilidade},
-    descricao:
-        'Alongamento para trabalhar a mobilidade da parte de trás da coxa.',
-    nivel: 'Iniciante',
-    musculos: 'Posteriores da coxa',
-  ),
-};
+import '../dados/exercicios.dart';
 
 /// Lista os exercícios disponíveis com busca por nome e filtros por categoria.
 class TelaBibliotecaExercicios extends StatefulWidget {
@@ -94,7 +29,7 @@ class _TelaBibliotecaExerciciosState extends State<TelaBibliotecaExercicios> {
   static const _margem = EdgeInsets.symmetric(horizontal: 20);
 
   final _busca = TextEditingController();
-  _Categoria _categoria = _Categoria.todos;
+  CategoriaExercicio _categoria = CategoriaExercicio.todos;
 
   @override
   void dispose() {
@@ -117,8 +52,8 @@ class _TelaBibliotecaExerciciosState extends State<TelaBibliotecaExercicios> {
     final tema = Theme.of(context);
     final consulta = _normalizar(_busca.text);
     final resultados = widget.exercicios.where((nome) {
-      final correspondeCategoria = _categoria == _Categoria.todos ||
-          (_fichas[nome]?.categorias.contains(_categoria) ?? false);
+      final correspondeCategoria = _categoria == CategoriaExercicio.todos ||
+          (fichasExercicios[nome]?.categorias.contains(_categoria) ?? false);
       return correspondeCategoria && _normalizar(nome).contains(consulta);
     }).toList();
     final total = resultados.length;
@@ -238,7 +173,7 @@ class _TelaBibliotecaExerciciosState extends State<TelaBibliotecaExercicios> {
                       padding: _margem,
                       child: Row(
                         children: [
-                          for (final categoria in _Categoria.values)
+                          for (final categoria in CategoriaExercicio.values)
                             Padding(
                               padding: const EdgeInsets.only(right: 8),
                               child: ChoiceChip(
@@ -305,7 +240,7 @@ class _TelaBibliotecaExerciciosState extends State<TelaBibliotecaExercicios> {
                     final nome = resultados[index];
                     return _CartaoExercicio(
                       nome: nome,
-                      ficha: _fichas[nome],
+                      ficha: fichasExercicios[nome],
                       aoTocar: () => widget.aoAbrirExercicio(nome),
                     );
                   },
@@ -327,7 +262,7 @@ class _CartaoExercicio extends StatelessWidget {
   });
 
   final String nome;
-  final _Ficha? ficha;
+  final FichaExercicio? ficha;
   final VoidCallback aoTocar;
 
   @override

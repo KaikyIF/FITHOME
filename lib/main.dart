@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import 'api_conta.dart';
+import 'dados/exercicios.dart';
 
 import 'telas/tela_detalhe_exercicio.dart';
 import 'telas/tela_biblioteca_exercicios.dart';
@@ -84,25 +85,36 @@ class _EstadoAplicativoFitHome extends State<AplicativoFitHome> {
   }
 
   // A tela ativa e a aba selecionada são controladas separadamente.
-  int pagina = 0, aba = 0, segundos = 40, concluidos = 0;
+  int pagina = 0, aba = 0, concluidos = 0;
   String nivel = 'Iniciante',
       objetivo = 'Perder Peso',
       selecionado = 'Força em Casa';
-  bool emExecucao = false, notificacoes = true;
+  bool notificacoes = true;
   Timer? cronometro;
-  final exercicios = <String>[
-    'Flexão de Braço',
-    'Agachamento',
-    'Prancha',
-    'Abdominal',
-    'Polichinelo',
-  ];
-  static const _exerciciosComplementares = [
-    'Burpee',
-    'Alongamento Posterior da Coxa',
-  ];
-  // Guarda os exercícios marcados durante a sessão atual.
+  final _tempoExercicio = Stopwatch();
+  List<String> _exerciciosTreino = [];
+  List<String> _sequencia = [];
+  final _selecionadosTreino = <String>{};
+  String _exercicioDetalhe = '';
+  int _paginaOrigemTreino = 6;
+  int _indiceExercicio = 0;
+  int _segundosAtivos = 0;
+  int _segundosResumo = 0;
+  int _exerciciosConcluidos = 0;
   final marcados = <String>{};
+
+  static const _categoriasTreino = {
+    'Cardio': CategoriaExercicio.cardio,
+    'Força em Casa': CategoriaExercicio.forca,
+    'Flexibilidade': CategoriaExercicio.flexibilidade,
+    'HIIT': CategoriaExercicio.hiit,
+  };
+
+  int get _duracaoExercicio =>
+      fichasExercicios[_sequencia[_indiceExercicio]]!.segundos;
+  int get _segundosRestantes =>
+      (_duracaoExercicio - _tempoExercicio.elapsed.inSeconds)
+          .clamp(0, _duracaoExercicio);
   // O contador de treinos fica no dispositivo e é separado por conta.
   Future<void> _salvarProgresso() async {
     // Captura a conta e o total antes da espera pelo armazenamento local.
@@ -115,6 +127,7 @@ class _EstadoAplicativoFitHome extends State<AplicativoFitHome> {
 
   // Limpa os dados da sessão antes de voltar ao login.
   void sair() {
+    _pararCronometro();
     setState(() {
       idUsuario = null;
       pagina = 0;
@@ -125,6 +138,10 @@ class _EstadoAplicativoFitHome extends State<AplicativoFitHome> {
       concluidos = 0;
       notificacoes = true;
       marcados.clear();
+      _selecionadosTreino.clear();
+      _exerciciosTreino = [];
+      _sequencia = [];
+      _tempoExercicio.reset();
       saude.clear();
       for (final campo in [
         nome,
@@ -142,27 +159,61 @@ class _EstadoAplicativoFitHome extends State<AplicativoFitHome> {
     });
   }
 
-  // Mantém um único cronômetro ativo por treino.
-  void iniciarCronometro() {
-    cronometro?.cancel();
-    setState(() => emExecucao = true);
-    cronometro = Timer.periodic(const Duration(seconds: 1), (cronometroAtivo) {
-      if (!mounted) {
-        cronometroAtivo.cancel();
-        return;
-      }
-      if (segundos > 0) {
-        setState(() => segundos--);
+  void _abrirTreino(String titulo, Iterable<String> exercicios) {
+    FocusManager.instance.primaryFocus?.unfocus();
+    setState(() {
+      _paginaOrigemTreino = pagina;
+      selecionado = titulo;
+      _exerciciosTreino = exercicios.toList();
+      _selecionadosTreino
+        ..clear()
+        ..addAll(_exerciciosTreino);
+      pagina = 8;
+    });
+  }
+
+  void _iniciarTreino() {
+    if (_selecionadosTreino.isEmpty) return;
+    setState(() {
+      _sequencia =
+          _exerciciosTreino.where(_selecionadosTreino.contains).toList();
+      _indiceExercicio = 0;
+      _exerciciosConcluidos = 0;
+      _segundosAtivos = 0;
+      _tempoExercicio.reset();
+      pagina = 11;
+    });
+    _retomarCronometro();
+  }
+
+  void _retomarCronometro() {
+    if (pagina != 11 || _tempoExercicio.isRunning) return;
+    setState(_tempoExercicio.start);
+    cronometro = Timer.periodic(const Duration(milliseconds: 200), (_) {
+      if (_segundosRestantes == 0) {
+        _concluirExercicio();
       } else {
-        _concluirTreino();
+        setState(() {});
       }
     });
   }
 
-  // Pausa a contagem sem alterar os segundos restantes.
-  void pausar() {
+  void _pararCronometro() {
     cronometro?.cancel();
-    setState(() => emExecucao = false);
+    cronometro = null;
+    _tempoExercicio.stop();
+  }
+
+  void _concluirExercicio() {
+    if (pagina != 11) return;
+    _pararCronometro();
+    setState(() {
+      _segundosAtivos += _duracaoExercicio - _segundosRestantes;
+      _exerciciosConcluidos++;
+      _tempoExercicio.reset();
+      if (_exerciciosConcluidos < _sequencia.length) _indiceExercicio++;
+    });
+    if (_exerciciosConcluidos == _sequencia.length) _concluirTreino();
   }
 
   // Libera o cronômetro e os controladores quando o app sai da árvore.
@@ -443,18 +494,24 @@ class _EstadoAplicativoFitHome extends State<AplicativoFitHome> {
             nivel: nivel,
             concluidos: concluidos,
             totalAtividades: marcados.length,
-            aoAbrirTreino: (valor) => setState(() {
-              selecionado = valor;
-              pagina = 8;
-            }),
+            aoAbrirTreino: (valor) => _abrirTreino(
+              valor,
+              fichasExercicios.entries
+                  .where((item) =>
+                      item.value.categorias.contains(_categoriasTreino[valor]))
+                  .map((item) => item.key),
+            ),
           ),
         1 => TelaBibliotecaExercicios(
-            exercicios: [...exercicios, ..._exerciciosComplementares],
-            aoVoltar: () => setState(() => aba = 0),
-            aoAbrirExercicio: (valor) => setState(() {
-              selecionado = valor;
-              pagina = 9;
-            }),
+            exercicios: fichasExercicios.keys.toList(),
+            aoVoltar: _voltarTreino,
+            aoAbrirExercicio: (valor) {
+              FocusManager.instance.primaryFocus?.unfocus();
+              setState(() {
+                _exercicioDetalhe = valor;
+                pagina = 9;
+              });
+            },
           ),
         2 => TelaProgresso(concluidos: concluidos),
         _ => TelaPerfil(
@@ -476,48 +533,77 @@ class _EstadoAplicativoFitHome extends State<AplicativoFitHome> {
         8 => TelaTreino(
             selecionado: selecionado,
             nivel: nivel,
-            exercicios: [...exercicios, ..._exerciciosComplementares],
-            marcados: marcados,
-            aoAlternar: (exercicio, marcado) => setState(() =>
-                marcado ? marcados.add(exercicio) : marcados.remove(exercicio)),
-            aoIniciar: () => setState(() {
-              segundos = 40;
-              pagina = 11;
-            }),
+            exercicios: _exerciciosTreino,
+            marcados: _selecionadosTreino,
+            aoAlternar: (exercicio, marcado) => setState(() => marcado
+                ? _selecionadosTreino.add(exercicio)
+                : _selecionadosTreino.remove(exercicio)),
+            aoIniciar: _iniciarTreino,
           ),
         9 => TelaDetalheExercicio(
-            selecionado: selecionado,
-            aoAdicionar: () => setState(() {
-              marcados.add(selecionado);
-              pagina = 8;
-            }),
+            selecionado: _exercicioDetalhe,
+            aoAdicionar: () {
+              marcados.add(_exercicioDetalhe);
+              _abrirTreino('Meu treino', marcados);
+            },
           ),
         10 => TelaTreinoConcluido(
+            treino: selecionado,
+            segundosAtivos: _segundosResumo,
+            exerciciosConcluidos: _exerciciosConcluidos,
+            totalExercicios: _sequencia.length,
             aoVoltarInicio: () => setState(() {
               pagina = 6;
               aba = 0;
             }),
           ),
         11 => TelaCronometro(
-            selecionado: selecionado,
-            segundos: segundos,
-            emExecucao: emExecucao,
-            aoAlternar: emExecucao ? pausar : iniciarCronometro,
-            aoReiniciar: () => setState(() => segundos = 40),
+            treino: selecionado,
+            exercicio: _sequencia[_indiceExercicio],
+            posicao: _indiceExercicio + 1,
+            total: _sequencia.length,
+            segundos: _segundosRestantes,
+            duracaoExercicio: _duracaoExercicio,
+            emExecucao: _tempoExercicio.isRunning,
+            aoAlternar: _tempoExercicio.isRunning
+                ? () => setState(_pararCronometro)
+                : _retomarCronometro,
+            aoReiniciar: () => setState(() {
+              _segundosAtivos += _duracaoExercicio - _segundosRestantes;
+              _tempoExercicio.reset();
+            }),
+            aoConcluirExercicio: _concluirExercicio,
             aoConcluir: _concluirTreino,
           ),
         _ => _telaAba(),
       };
 
-  // Compartilha a conclusão entre o fim do cronômetro e o botão manual.
   void _concluirTreino() {
-    cronometro?.cancel();
+    if (pagina != 11) return;
+    _pararCronometro();
     setState(() {
-      emExecucao = false;
-      concluidos++;
+      _segundosResumo =
+          _segundosAtivos + _duracaoExercicio - _segundosRestantes;
+      if (_exerciciosConcluidos == _sequencia.length) concluidos++;
       pagina = 10;
     });
-    _salvarProgresso();
+    if (_exerciciosConcluidos == _sequencia.length) _salvarProgresso();
+  }
+
+  void _voltarTreino() {
+    FocusManager.instance.primaryFocus?.unfocus();
+    _pararCronometro();
+    setState(() {
+      if (pagina == 6) {
+        aba = 0;
+      } else {
+        pagina = switch (pagina) {
+          11 => 8,
+          8 => _paginaOrigemTreino,
+          _ => 6,
+        };
+      }
+    });
   }
 
   @override
@@ -542,56 +628,75 @@ class _EstadoAplicativoFitHome extends State<AplicativoFitHome> {
         ),
       );
     }
-    final corpo = _telaTreino();
     final naBiblioteca = pagina == 6 && aba == 1;
-    return Scaffold(
-      appBar: naBiblioteca
-          ? null
-          : AppBar(
-              title: const Text(
-                'FitHome',
-                style: TextStyle(fontWeight: FontWeight.bold),
+    final podeVoltarAoInicio = pagina != 6 || aba != 0;
+    return PopScope<Object?>(
+      canPop: !podeVoltarAoInicio,
+      onPopInvokedWithResult: (saiu, _) {
+        if (!saiu && podeVoltarAoInicio) _voltarTreino();
+      },
+      child: Scaffold(
+        appBar: naBiblioteca
+            ? null
+            : AppBar(
+                title: const Text(
+                  'FitHome',
+                  style: TextStyle(fontWeight: FontWeight.bold),
+                ),
+                foregroundColor: roxo,
+                leading: pagina != 6
+                    ? IconButton(
+                        tooltip: 'Voltar',
+                        icon: const Icon(Icons.arrow_back),
+                        onPressed: _voltarTreino,
+                      )
+                    : null,
               ),
-              foregroundColor: roxo,
-              leading: pagina == 8 || pagina == 9 || pagina == 11
-                  ? IconButton(
-                      icon: const Icon(Icons.arrow_back),
-                      onPressed: () {
-                        pausar();
-                        setState(() => pagina = pagina == 9 ? 6 : 8);
-                      },
-                    )
-                  : null,
-            ),
-      body: SafeArea(
-        child: naBiblioteca
-            ? corpo
-            : Padding(padding: const EdgeInsets.all(20), child: corpo),
+        body: SafeArea(
+          child: Stack(
+            fit: StackFit.expand,
+            children: [
+              if (aba == 1)
+                Offstage(
+                  offstage: !naBiblioteca,
+                  child: ExcludeFocus(
+                    excluding: !naBiblioteca,
+                    child: _telaAba(),
+                  ),
+                ),
+              if (!naBiblioteca)
+                Padding(
+                  padding: const EdgeInsets.all(20),
+                  child: _telaTreino(),
+                ),
+            ],
+          ),
+        ),
+        bottomNavigationBar: (pagina == 6)
+            ? NavigationBar(
+                selectedIndex: aba,
+                onDestinationSelected: (v) => setState(() => aba = v),
+                destinations: const [
+                  NavigationDestination(
+                    icon: Icon(Icons.home_outlined),
+                    label: 'Início',
+                  ),
+                  NavigationDestination(
+                    icon: Icon(Icons.fitness_center),
+                    label: 'Exercícios',
+                  ),
+                  NavigationDestination(
+                    icon: Icon(Icons.bar_chart),
+                    label: 'Progresso',
+                  ),
+                  NavigationDestination(
+                    icon: Icon(Icons.person_outline),
+                    label: 'Perfil',
+                  ),
+                ],
+              )
+            : null,
       ),
-      bottomNavigationBar: (pagina == 6)
-          ? NavigationBar(
-              selectedIndex: aba,
-              onDestinationSelected: (v) => setState(() => aba = v),
-              destinations: const [
-                NavigationDestination(
-                  icon: Icon(Icons.home_outlined),
-                  label: 'Início',
-                ),
-                NavigationDestination(
-                  icon: Icon(Icons.fitness_center),
-                  label: 'Exercícios',
-                ),
-                NavigationDestination(
-                  icon: Icon(Icons.bar_chart),
-                  label: 'Progresso',
-                ),
-                NavigationDestination(
-                  icon: Icon(Icons.person_outline),
-                  label: 'Perfil',
-                ),
-              ],
-            )
-          : null,
     );
   }
 }
